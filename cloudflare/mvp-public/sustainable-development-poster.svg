@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 620" role="img" aria-labelledby="title desc">
+  <title id="title">Կայուն զարգացում</title>
+  <desc id="desc">Կանաչ համայնք՝ մաքուր էներգիայով, ծառերով և կայուն քաղաքով</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#263d32"/><stop offset=".58" stop-color="#182b25"/><stop offset="1" stop-color="#111b19"/></linearGradient>
+    <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#7faf79"/><stop offset="1" stop-color="#355b45"/></linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d5efc6"/><stop offset="1" stop-color="#8dc49c"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+  <rect width="960" height="620" fill="url(#sky)"/>
+  <circle cx="740" cy="185" r="105" fill="#e4c788" opacity=".13" filter="url(#glow)"/>
+  <circle cx="740" cy="185" r="63" fill="#e4c788" opacity=".9"/>
+  <path d="M0 360 Q155 273 319 360 T652 342 T960 330 V620 H0Z" fill="#274836"/>
+  <path d="M0 420 Q165 315 350 418 T720 396 T960 400 V620 H0Z" fill="url(#hill)"/>
+  <path d="M0 500 Q192 427 398 497 T780 480 T960 486 V620 H0Z" fill="#294b3a"/>
+  <g opacity=".9" fill="#152620">
+    <path d="M590 340h46v104h-46zM644 307h57v137h-57zM710 329h43v115h-43zM761 287h65v157h-65zM835 326h45v118h-45z"/>
+    <path d="M652 322h9v10h-9zm18 0h9v10h-9zm18 0h9v10h-9zm-36 21h9v10h-9zm18 0h9v10h-9zm18 0h9v10h-9zm-36 22h9v10h-9zm18 0h9v10h-9zm18 0h9v10h-9zm100-61h10v13h-10zm20 0h10v13h-10zm-30 27h10v13h-10zm20 0h10v13h-10zm20 0h10v13h-10z" fill="#8dbb91" opacity=".8"/>
+  </g>
+  <g transform="translate(180 305)">
+    <path d="M0 142V38" stroke="#d3bd83" stroke-width="13" stroke-linecap="round"/>
+    <path d="M0 63c-71-2-87-52-64-75 37 3 62 22 64 75zm1 27c67 0 91-44 70-71-36 1-65 24-70 71z" fill="#bbd993"/>
+    <circle cx="0" cy="31" r="59" fill="#9ccc8e"/>
+    <circle cx="-40" cy="75" r="40" fill="#80b982"/>
+    <circle cx="38" cy="78" r="42" fill="#b6d88e"/>
+    <path d="M-10 142q-36 29-72 28m84-28q35 25 69 20" fill="none" stroke="#d0b779" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(365 338)">
+    <path d="M0 87V0m0 37L-46 9m47 43 42-37M0 63l-39-15m40 20 36-17" stroke="#d9c68f" stroke-width="7" stroke-linecap="round"/>
+    <path d="M-46 9q-1-25 25-27-1 25-25 27m66 6q3-25 27-28-2 24-27 28M-39 48q-1-23 24-24-1 23-24 24m51 2q3-23 27-26-2 23-27 26" fill="#c5df9d"/>
+  </g>
+  <g transform="translate(482 448)" fill="none" stroke="#d9c68f" stroke-width="5" opacity=".8">
+    <path d="M0 0c47-27 91 18 60 54-23 26-62 4-48-20 10-16 33-10 31 4"/>
+    <circle cx="0" cy="0" r="6" fill="#d9c68f"/><circle cx="60" cy="54" r="6" fill="#d9c68f"/>
+  </g>
+  <g transform="translate(645 213)" stroke="#edf1d2" stroke-width="5" opacity=".9">
+    <path d="M0 52h55m-28-28v57"/><circle cx="28" cy="52" r="47" fill="none"/>
+  </g>
+  <rect x="48" y="48" width="8" height="90" rx="4" fill="url(#panel)"/>
+  <text x="82" y="76" fill="#bdd3bc" font-family="Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="4">ԴԱՍԸՆԹԱՑ · ԹԵՄԱ 8</text>
+  <text x="82" y="130" fill="#f1f3e9" font-family="Arial, sans-serif" font-size="39" font-weight="700">Կայուն զարգացում</text>
+  <text x="82" y="164" fill="#bbcabd" font-family="Arial, sans-serif" font-size="16" letter-spacing="1">ՄԱՐԴԻԿ · ՄՈԼՈՐԱԿ · ԱՊԱԳԱ</text>
+  <g transform="translate(800 520)"><circle r="28" fill="#182922" stroke="#aacb9b" stroke-width="2"/><path d="M0 15V-7m0 7c-19 0-23-15-17-21 10 1 16 6 17 21m0-2c18 0 22-13 17-20C8-21 1-13 0-2" fill="#aacb9b"/></g>
+</svg>

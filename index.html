@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="hy">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101412">
+  <title>Ուսում · Կայուն զարգացում</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#home" aria-label="Ուսում գլխավոր էջ"><span class="brand-mark">Ու</span><span>ուսում</span></a>
+      <div class="side-caption">ՈՒՍՈՒՄՆԱԿԱՆ ՏԱՐԱԾՔ</div>
+      <nav class="nav" aria-label="Հիմնական նավարկում">
+        <button class="nav-link active" data-view="library"><span>▤</span> Գլխավոր</button>
+        <button class="nav-link" data-view="home"><span>▶</span> Դասընթացներ</button>
+        <button class="nav-link" data-view="progress"><span>◷</span> Իմ առաջընթացը</button>
+      </nav>
+      <div class="sidebar-bottom"><span class="status-dot"></span> Ձեր ուսումնական տարածքը<br>պահպանվում է այս սարքում</div>
+    </aside>
+    <main class="main-area">
+      <header class="topbar"><div class="crumb">Ուսումնական տարածք <span>/</span> <b id="crumb-current">Գլխավոր</b></div><div class="profile"><div class="avatar">Ա</div><div><strong>Սովորող</strong><small>Իմ հաշիվը</small></div></div></header>
+      <div class="content alternate-view catalog-page" id="view-library"><div class="page-heading"><div><div class="eyebrow">ՈՒՍՈՒՄՆԱԿԱՆ ՆՅՈՒԹԵՐ</div><h1>Գլխավոր</h1><p>Ընտրեք դասընթաց՝ ուսումնառությունը սկսելու համար։</p></div></div><div class="uploaded-list course-catalog" id="uploaded-list"></div></div>
+      <div class="content home-course-page" id="view-home" hidden>
+        <section class="featured-course" id="featured-course" hidden><div class="featured-course-heading"><div><div class="eyebrow"><span class="live-dot"></span> ARTICULATE STORYLINE ԴԱՍԸՆԹԱՑ</div><h1 id="featured-course-title">ԴԱՍ 8</h1><p>Դասընթացը՝ այս հարթակի ներսում</p></div><button class="button button-outline" id="featured-fullscreen">Բացել մեծ էկրանով ↗</button></div><div class="featured-course-frame"><iframe id="featured-scorm-frame" title="Storyline հիմնական դասընթաց" allow="fullscreen; autoplay" allowfullscreen></iframe></div></section>
+        <section class="home-assistant-section"><div class="section-heading"><div><div class="eyebrow">ՀԱՐՑՐԵՔ ԴԱՍԸՆԹԱՑԻ ՄԱՍԻՆ</div><h2>Սովորեք հարցերի միջոցով</h2><p>Տվեք հարց դասի նյութի մասին և ստացեք թեմային համապատասխան պատասխան։</p></div></div><aside class="assistant-panel" id="assistant-panel"><div class="assistant-head"><div><div class="assistant-icon">✦</div><div><strong>Ուսումնական օգնական</strong><small>Պատասխանում է դասանյութի հիման վրա</small></div></div></div><div class="assistant-context">Հիմք՝ Թեմա 8 նյութեր</div><div class="chat-messages" id="chat-messages"><div class="chat-message assistant-message">Բարև։ Հարցրեք կայուն զարգացման ցուցանիշների, համաթվերի կամ 17 նպատակների մասին։</div></div><form class="chat-form" id="chat-form"><textarea id="chat-input" rows="3" placeholder="Գրեք ձեր հարցը…" aria-label="Հարց գրեք"></textarea><button type="submit" aria-label="Ուղարկել հարցը">↑</button></form><div class="assistant-foot">Պատասխանները հիմնվում են այս դասընթացի նյութերի վրա։</div></aside></section>
+        <section class="home-open-question"><div class="section-heading"><div><div class="eyebrow">ԻՆՔՆՈՒՐՈՒՅՆ ՄՏԱԾՈՂՈՒԹՅՈՒՆ</div><h2>Բաց հարց</h2><p>Մտածեք կայուն զարգացման մասին՝ որպես մարդկանց կյանքի որակը, տնտեսությունն ու շրջակա միջավայրը միասին դիտարկող մոտեցում։</p></div></div><div class="question-card"><strong>Ինչպե՞ս կարող են կայուն զարգացման ինդիկատորներն ու համաթվերը օգնել հասկանալ՝ արդյոք երկրի կամ համայնքի զարգացումը բարելավում է մարդկանց կյանքը՝ միաժամանակ պահպանելով տնտեսության և շրջակա միջավայրի հավասարակշռությունը։ Բերեք մեկ օրինակ և նշեք, թե ինչ տվյալներով կչափեիք առաջընթացը։</strong><p>Պատասխանում բացատրեք գաղափարների կապը, բերեք հիմնավորված օրինակ և առաջարկեք չափելի տվյալ կամ ինդիկատոր։</p></div><textarea class="answer-field" id="open-answer" placeholder="Գրեք ձեր հիմնավորված պատասխանը…" aria-label="Գրեք ձեր պատասխանը"></textarea><div class="evaluation-controls"><span>Գնահատում՝ 100 միավորով։ Չափանիշներն ու աստիճանները՝ ստորև։</span><button class="button button-primary" id="evaluate-answer">Ստանալ հետադարձ կապ</button></div><details class="rubric-details" open><summary>Գնահատման սանդղակ և միավորների փոխարկում</summary><div class="rubric-grid"><article><b>Օրինակելի · 90–100</b><p>Լիարժեք, ճշգրիտ և հիմնավորված պատասխան՝ հստակ օրինակով ու չափելի տվյալներով։</p></article><article><b>Իմացող / Լիարժեք · 75–89</b><p>Թեման լավ է բացատրված, հիմնական կապերն ու օրինակը ներկայացված են, կան փոքր բացթողումներ։</p></article><article><b>Զարգացող · 60–74</b><p>Կան թեմային վերաբերող գաղափարներ, բայց կապը, օրինակը կամ չափման եղանակը թերի է բացատրված։</p></article><article><b>Անբավարար · 0–59</b><p>Սպասելիքներից ցածր է․ պատասխանը թերի է, շեղված թեմայից կամ անճիշտ, և հիմնական պահանջվող տարրերը բացակայում են։</p></article></div><p class="rubric-note">Միավորներ՝ թեմայի ըմբռնում՝ 30, կայունության չափումների կապ՝ 25, օրինակ և չափում՝ 25, ամբողջականություն ու հստակություն՝ 20։ Միավորների գումարը որոշում է գնահատման աստիճանը։</p></details><div id="evaluation-result" aria-live="polite"></div></section>
+      </div>
+      <div class="content alternate-view" id="view-progress" hidden><div class="page-heading"><div><div class="eyebrow">ՈՒՍՈՒՄՆԱԿԱՆ ՎԵՐԼՈՒԾՈՒԹՅՈՒՆ</div><h1>Իմ առաջընթացը</h1><p>Առաջընթացը պահվում է այս դիտարկչում՝ այս հղման հասցեի համար։ Այլ հասցեով կամ դիտարկչով բացելիս այն չի փոխանցվում։</p></div><button class="button button-outline" id="reset-progress">Վերակայել առաջընթացը</button></div><section class="progress-course-access" id="progress-course-access" hidden><div><div class="eyebrow">ARTICULATE · STORYLINE</div><h2 id="progress-course-title">Կայուն զարգացում</h2><p>Բացեք ներկառուցված դասընթացը՝ տեսանյութը, նյութերը, գրականությունն ու ինքնաստուգիչ հարցերը շարունակելու համար։</p></div><button class="button button-primary" id="progress-open-course">Բացել դասընթացը →</button></section><div class="analytics-summary" id="analytics-summary"></div><div class="progress-details" id="progress-details"></div></div>
+    </main>
+  </div>
+
+  <div class="player" id="player" aria-hidden="true"><header class="player-top"><button class="back-button" id="close-player">← <span>Վերադառնալ դասընթացին</span></button><div class="player-brand" id="player-brand"><span class="brand-mark">Ու</span> ուսում</div><div class="player-top-right"><span class="save-indicator"><i></i> Առաջընթացը պահպանվում է</span></div></header><div class="player-layout" id="player-layout"><aside class="lesson-sidebar"><div class="lesson-overline">ԴԱՍԸՆԹԱՑ · ԹԵՄԱ 8</div><h2>Կայուն զարգացում</h2><div class="lesson-progress"><span id="lesson-progress-text">0% ավարտված</span><i><b id="lesson-progress-fill"></b></i></div><div class="lesson-nav" id="lesson-nav"></div><div class="lesson-source">Հիմք՝ կից ներկայացման և ընթերցանության նյութեր</div></aside><section class="lesson-main"><div class="lesson-scroll" id="lesson-content"></div><div class="lesson-bottom" id="lesson-bottom"></div></section></div><section class="scorm-stage" id="scorm-stage" hidden><iframe id="scorm-frame" title="SCORM դասընթաց" allow="fullscreen; autoplay" allowfullscreen></iframe></section></div>
+
+  <div class="modal-back" id="upload-modal"><div class="modal"><button class="modal-x" data-close-modal="upload-modal" aria-label="Փակել">×</button><div class="eyebrow">ԴԱՍԱՎԱՆԴՈՂԻ ԳՈՐԾԻՔ</div><h2>Ավելացնել SCORM փաթեթ</h2><p>Ընտրեք Articulate-ից արտահանված SCORM 1.2 կամ SCORM 2004 ZIP ֆայլը։</p><label class="upload-drop" id="upload-drop"><span>⇧</span><strong>Ընտրել ZIP փաթեթը</strong><small>Մինչև 400 ՄԲ · imsmanifest.xml պարտադիր է</small><input type="file" id="upload-file" accept=".zip,application/zip" hidden></label><label class="field-label" for="upload-title">Դասընթացի անվանում</label><input class="text-field" id="upload-title" placeholder="Օրինակ՝ Կայուն զարգացում"><label class="field-label" for="upload-token">Ներբեռնման գաղտնաբառ <small>(եթե կայքի ադմինը տրամադրել է)</small></label><input class="text-field" id="upload-token" type="password" autocomplete="off" placeholder="Ըստ անհրաժեշտության"><div class="upload-status" id="upload-status"></div><div class="modal-actions"><button class="button button-outline" data-close-modal="upload-modal">Չեղարկել</button><button class="button button-primary" id="upload-submit">Վերբեռնել</button></div></div></div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="course-data.js?v=4"></script><script src="app.js?v=25"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
