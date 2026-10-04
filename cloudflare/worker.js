@@ -17,7 +17,7 @@ function aiAllowed(request) {
 async function openAiJson(env, schema, instructions, input) {
   const response = await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{authorization:`Bearer ${env.OPENAI_API_KEY}`,'content-type':'application/json'},body:JSON.stringify({model:env.OPENAI_MODEL||'gpt-4o',instructions,input,store:false,max_output_tokens:700,text:{format:schema}}),signal:AbortSignal.timeout(45_000)});
   const data = await response.json();
-  if (!response.ok) { console.error('OpenAI API response:',response.status,data.error?.type || 'request_error'); throw new Error('OpenAI request failed.'); }
+  if (!response.ok) { console.error('OpenAI API response:',response.status,data.error?.type || 'request_error'); const error=new Error('OpenAI request failed.'); error.code=data.error?.type||data.error?.code; error.status=response.status; throw error; }
   const outputText = (data.output||[]).flatMap(item=>item.content||[]).find(item=>item.type==='output_text')?.text;
   if (!outputText) throw new Error('OpenAI returned no text.');
   return JSON.parse(outputText);
@@ -63,7 +63,7 @@ export default {
         try {
           const result=await openAiJson(env,AI_SCHEMAS.qa,'Դու հայերեն ուսումնական զրուցակից և մտածողության խթանող ես։ Պատասխանիր բնական, իմաստալից և բավարար խորությամբ. մի սահմանափակվիր նախապես գրված տարբերակներով կամ կարճ բառարանային սահմանումներով։ Հարցի էությունը պարզելուց հետո զարգացրու պատասխանը՝ անհրաժեշտության դեպքում կապելով սոցիալական, տնտեսական և բնապահպանական կողմերը, ներկայացնելով պատճառահետևանքային կապեր, տարբեր տեսակետներ, փոխզիջումներ կամ առօրյա/համայնքային օրինակներ։ Կարող ես քննարկել կայուն զարգացման թեմային առնչվող ավելի լայն գաղափարներ՝ դասանյութից դուրս ընդհանուր գիտելիքի հիման վրա. հստակ տարբերակիր դասանյութում նշվածը քո ընդհանուր բացատրությունից։ Օգտագործիր դասանյութը որպես ելակետ և մի պնդիր, թե այն ասում է բան, որը այնտեղ չկա։ Եթե հարցը թեմային առնչվող մտահղացում, քննադատություն կամ կիրառություն է, զարգացրու այն՝ ոչ թե մերժիր որպես դասընթացից դուրս։ Ճշգրիտ ընթացիկ վիճակագրություն կամ հղում մի հորինիր։ Վերջում կարող ես տալ առավելագույնը երկու իրական, բաց հարց՝ որպես կամընտիր շարունակություն, ոչ թե որպես պատասխանի փոխարինում։ Պատասխանիր հայերեն։ Վերադարձիր միայն պահանջվող JSON-ը։',JSON.stringify({course_material:COURSE_CONTEXT,active_section:section,student_question:question}));
           return json(result);
-        } catch (error) { console.error('AI Q&A error:',error.message); return json({error:'AI ծառայությունը ժամանակավորապես անհասանելի է։ Փորձեք կրկին։'},502); }
+        } catch (error) { console.error('AI Q&A error:',error.code||error.message); if(error.code==='insufficient_quota') return json({error:'OpenAI API-ի օգտագործման հասանելի վարկը սպառվել է կամ API հաշվարկային կարգավորումը դեռ ակտիվ չէ։ Ստուգեք API billing-ը։',code:'insufficient_quota'},503); if(error.code==='invalid_api_key') return json({error:'OpenAI API բանալին անվավեր է։ Ստեղծեք նոր բանալի և պահեք այն որպես Cloudflare Secret։',code:'invalid_api_key'},503); return json({error:'AI ծառայությունը ժամանակավորապես անհասանելի է։ Փորձեք կրկին։'},502); }
       }
       if (path === '/api/scorm/evaluate-open-ended' && request.method === 'POST') {
         if (!aiAllowed(request)) return json({error:'Հարցումների սահմանաչափը լրացել է։ Սպասեք մեկ րոպե և փորձեք կրկին։'},429);
@@ -78,7 +78,7 @@ export default {
           for (const row of result.criterion_breakdown||[]) { const item=rubric.find(x=>x.criterion_id===row.criterion_id); if(item){row.max_points=item.max_points;row.points_earned=Math.max(0,Math.min(item.max_points,Number(row.points_earned)||0));} }
           result.total_score_awarded=(result.criterion_breakdown||[]).reduce((sum,row)=>sum+row.points_earned,0);
           return json(result);
-        } catch (error) { console.error('AI evaluation error:',error.message); return json({error:'AI գնահատումը ժամանակավորապես անհասանելի է։ Փորձեք կրկին։'},502); }
+        } catch (error) { console.error('AI evaluation error:',error.code||error.message); if(error.code==='insufficient_quota') return json({error:'OpenAI API-ի օգտագործման հասանելի վարկը սպառվել է կամ API հաշվարկային կարգավորումը դեռ ակտիվ չէ։ Ստուգեք API billing-ը։',code:'insufficient_quota'},503); if(error.code==='invalid_api_key') return json({error:'OpenAI API բանալին անվավեր է։ Ստեղծեք նոր բանալի և պահեք այն որպես Cloudflare Secret։',code:'invalid_api_key'},503); return json({error:'AI գնահատումը ժամանակավորապես անհասանելի է։ Փորձեք կրկին։'},502); }
       }
       if (path === '/api/courses' && request.method === 'POST') {
         if (!authorized(request, env)) return json({error:'Upload password is missing or incorrect.'},401);
