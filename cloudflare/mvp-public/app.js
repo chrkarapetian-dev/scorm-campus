@@ -331,6 +331,7 @@
       pending.textContent=data.answer_armenian;
       if(data.citations?.length){const cites=document.createElement('div');cites.className='citation';cites.textContent=data.citations.map(c=>c.reference_label).join(' · ');pending.append(cites);}
       if(data.suggested_followups_armenian?.length){const follow=document.createElement('div');follow.className='suggested-followups';data.suggested_followups_armenian.slice(0,2).forEach(text=>{const btn=document.createElement('button');btn.className='followup';btn.textContent=text;btn.addEventListener('click',()=>askAssistant(text));follow.append(btn);});pending.append(follow);}
+      const note=document.createElement('div');note.className='citation';note.textContent='Նշում․ ցուցադրվում է դասընթացի ներկառուցված պատասխան։ Լայն, ազատ AI պատասխանների համար պետք է միացված լինի OpenAI API բանալին։';pending.append(note);
     }
     $('chat-messages').scrollTop = $('chat-messages').scrollHeight;
   }
