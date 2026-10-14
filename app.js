@@ -261,12 +261,13 @@
     $('evaluate-answer').addEventListener('click', async () => {
       const response = $('open-answer').value.trim();
       if (response.length < 40) { $('evaluation-result').innerHTML = '<div class="eval-result">Խնդրում ենք գրել առնվազն 40 նիշ՝ հարցին ամբողջական պատասխանելու համար։</div>'; return; }
-      $('evaluate-answer').disabled = true; $('evaluate-answer').textContent = 'Գնահատում…';
+      $('evaluate-answer').disabled = true; $('evaluate-answer').textContent = 'Պատասխանը գնահատվում է…';
+      $('evaluation-result').innerHTML = '<div class="eval-result" role="status">Պատասխանը ստացվել է։ Պատրաստում ենք հետադարձ կապը…</div>';
       try {
         if (location.protocol === 'file:') {
           const data=offlineEvaluation(response); state.evaluation={score:data.total_score_awarded,max:data.max_total_score,at:Date.now()};
           if(!state.completed.includes('reflection'))state.completed.push('reflection'); save(); updateProgress();
-          $('evaluation-result').innerHTML=renderEvaluation(data);
+          $('evaluation-result').innerHTML=renderEvaluation(data,'Ցուցադրվում է չափանիշների վրա հիմնված տեղային գնահատում։');
           return;
         }
         const res = await fetch('/api/scorm/evaluate-open-ended', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({student_response:response}) });
@@ -274,15 +275,19 @@
         state.evaluation = { score:data.total_score_awarded, max:data.max_total_score, at:Date.now() };
         if (!state.completed.includes('reflection')) state.completed.push('reflection'); save(); updateProgress();
         $('evaluation-result').innerHTML = renderEvaluation(data);
-      } catch(e) { $('evaluation-result').innerHTML = `<div class="eval-result">${esc(e.message)}</div>`; }
-      finally { $('evaluate-answer').disabled = false; $('evaluate-answer').textContent = 'Կրկին ստանալ հետադարձ կապ'; }
+      } catch(e) {
+        const data=offlineEvaluation(response); state.evaluation={score:data.total_score_awarded,max:data.max_total_score,at:Date.now()};
+        if(!state.completed.includes('reflection'))state.completed.push('reflection'); save(); updateProgress();
+        $('evaluation-result').innerHTML=renderEvaluation(data,'AI գնահատումն այս պահին հասանելի չէ։ Ստորև ցուցադրվում է չափանիշների վրա հիմնված տեղային գնահատում։');
+      }
+      finally { $('evaluate-answer').disabled = false; $('evaluate-answer').textContent = 'Պատասխանել'; }
     });
   }
   function evaluationBand(score) { return score>=90?'Օրինակելի':score>=75?'Իմացող / Լիարժեք':score>=60?'Զարգացող':'Անբավարար'; }
-  function renderEvaluation(data) {
+  function renderEvaluation(data, notice='') {
     const score=Math.max(0,Math.min(100,Number(data.total_score_awarded)||0)), rows=data.criterion_breakdown||[];
     const titles={understanding:'Թեմայի ըմբռնում',connections:'Կայունության չափումների կապ',example_measure:'Օրինակ և չափում',completeness:'Ամբողջականություն և հստակություն'};
-    return `<div class="eval-result"><div class="eval-score">${score}/100 միավոր</div><div class="eval-level">${evaluationBand(score)}</div><p>${esc(data.summary_feedback_armenian||'Գնահատումն ավարտված է։')}</p><ul>${rows.map(x=>`<li><b>${esc(x.title_armenian||titles[x.criterion_id]||x.criterion_id)}</b>՝ ${esc(x.points_earned)}/${esc(x.max_points)}․ ${esc(x.reasoning_armenian)}</li>`).join('')}</ul><p>${esc(data.actionable_tips_armenian||'')}</p></div>`;
+    return `<div class="eval-result">${notice?`<p class="citation">${esc(notice)}</p>`:''}<div class="eval-score">${score}/100 միավոր</div><div class="eval-level">${evaluationBand(score)}</div><p>${esc(data.summary_feedback_armenian||'Գնահատումն ավարտված է։')}</p><ul>${rows.map(x=>`<li><b>${esc(x.title_armenian||titles[x.criterion_id]||x.criterion_id)}</b>՝ ${esc(x.points_earned)}/${esc(x.max_points)}․ ${esc(x.reasoning_armenian)}</li>`).join('')}</ul><p>${esc(data.actionable_tips_armenian||'')}</p></div>`;
   }
   function toggleAssistant(show = true) { $('assistant-panel').classList.toggle('show', show); if (show) setTimeout(() => $('chat-input').focus(), 200); }
   function offlineAnswer(question) {
