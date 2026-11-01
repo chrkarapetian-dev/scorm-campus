@@ -37,3 +37,16 @@ body{background:#0b0b0b;color:#f5f5f1}
 .featured-course,.progress-course-access{background:linear-gradient(135deg,#1b1b1b,#111);border-color:#333}.featured-course .eyebrow{color:#ff2934}.featured-course-frame{background:#080808}
 .toast{background:#e50914;color:#fff}
 button:focus-visible,input:focus-visible,textarea:focus-visible{outline-color:#e50914}
+.home-assistant-section .assistant-panel{background:#141414;border-color:#303030}
+.home-assistant-section .assistant-head,.home-assistant-section .assistant-context{border-color:#303030}
+.home-assistant-section .assistant-icon{background:#e50914;color:#fff}
+.home-assistant-section .assistant-head small,.home-assistant-section .assistant-context,.home-assistant-section .assistant-foot{color:#a3a3a3}
+.home-assistant-section .chat-messages{background:#111}
+.home-assistant-section .assistant-message{background:#242424;color:#f5f5f1}
+.home-assistant-section .user-message{background:#e50914;color:#fff}
+.home-assistant-section .chat-form{background:#1b1b1b;border-color:#454545}
+.home-assistant-section .chat-form textarea{color:#f5f5f1}
+.home-assistant-section .chat-form textarea::placeholder{color:#8c8c8c}
+.home-assistant-section .chat-form button{background:#e50914;color:#fff}
+.home-assistant-section .followup{background:#1f1f1f;border-color:#4a4a4a;color:#f5f5f1}
+.home-assistant-section .followup:hover{background:#303030;border-color:#e50914}
