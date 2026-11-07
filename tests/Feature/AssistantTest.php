@@ -100,6 +100,25 @@ class AssistantTest extends TestCase
         });
     }
 
+    public function test_reasoning_output_before_the_answer_is_skipped(): void
+    {
+        config(['services.openai.key' => 'sk-test']);
+        Http::fake(['api.openai.com/*' => Http::response([
+            'output' => [
+                ['type' => 'reasoning', 'summary' => []],
+                ['type' => 'message', 'content' => [['type' => 'output_text', 'text' => json_encode([
+                    'answer_armenian' => 'AI պատասխան', 'citations' => [], 'suggested_followups_armenian' => [],
+                ])]]],
+            ],
+        ])]);
+
+        $this->postJson('/api/scorm/qa-assistant', ['student_question' => 'Ի՞նչ է ինդիկատորը', 'active_section' => 'slides'])
+            ->assertOk()
+            ->assertJsonPath('answer_armenian', 'AI պատասխան');
+
+        Http::assertSent(fn ($request) => $request['max_output_tokens'] >= 16000);
+    }
+
     public function test_quota_errors_fall_back_to_the_built_in_answer_and_say_why(): void
     {
         config(['services.openai.key' => 'sk-test']);

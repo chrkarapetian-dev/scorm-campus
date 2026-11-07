@@ -31,7 +31,8 @@ class OpenAiResponses
                     'instructions' => $instructions,
                     'input' => json_encode($input, JSON_UNESCAPED_UNICODE),
                     'store' => false,
-                    'max_output_tokens' => 700,
+                    // Reasoning tokens count toward this limit, so a low cap can leave no visible answer.
+                    'max_output_tokens' => 16000,
                     'text' => ['format' => $format],
                 ]);
         } catch (ConnectionException $e) {

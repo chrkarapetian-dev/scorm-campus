@@ -37,7 +37,7 @@ services:
       QUEUE_CONNECTION: sync
       UPLOAD_TOKEN: ${UPLOAD_TOKEN:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-6-luna}
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
     volumes:
       # Uploaded SCORM packages.
