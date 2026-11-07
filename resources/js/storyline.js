@@ -5,7 +5,10 @@
 
 const STORE = 'usum-storyline-progress-v1';
 const PASSING_SCORE = 70;
-const MAIN_VIDEO_PATH = '/WebObjects/5qvRxGnnI1u/video.mp4';
+// Every package holds this short clip next to its lesson video, which is the one tracked.
+const SHARED_CLIP = 'video_5uQbYqRF4Ug';
+// The literature slide sends no message, so it is recognised by a reference only it lists.
+const LITERATURE_REFERENCES = ['Константинов В.М., Ю.Б. Челидзе', 'Ясаманов Н.А.', 'Jennifer Elliott An Introduction', 'Голубев Г.Н. Геоэкология', 'Global Reporting Initiative', 'Armenia - Human Development Index'];
 const RESULTS_SLIDE = '6SfrhhbiYCV';
 const READING_SECTIONS = ['materials', 'literature'];
 
@@ -164,7 +167,7 @@ export function createStorylineTracker({ sections, frames, onChange }) {
 
         const source = video.currentSrc || video.src || '';
 
-        if (!source.includes(MAIN_VIDEO_PATH)) return;
+        if (!source.includes('.mp4') || source.includes(SHARED_CLIP)) return;
 
         video.dataset.usumProgressHook = '1';
         let lastSaved = 0;
@@ -217,7 +220,7 @@ export function createStorylineTracker({ sections, frames, onChange }) {
             const slideText = String(win.document.body?.innerText || '');
 
             if (slideText.includes('Այս բաժնում տեղադրված են դասին առնչվող ուսումնական նյութերը')) recordSlide(item, '6m4h0Gy3mUh');
-            else if (slideText.includes('Голубев Г.Н. Геоэкология. Изд.') && slideText.includes('Գրականություն')) recordSlide(item, '6eZpibFOcqO');
+            else if (slideText.includes('Գրականություն') && LITERATURE_REFERENCES.some(reference => slideText.includes(reference))) recordSlide(item, '6eZpibFOcqO');
 
             win.document.querySelectorAll('iframe').forEach(frame => {
                 try {

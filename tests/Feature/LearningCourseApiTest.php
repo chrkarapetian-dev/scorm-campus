@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Database\Seeders\LearningCourseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -15,6 +16,7 @@ class LearningCourseApiTest extends TestCase
         parent::setUp();
 
         $this->seed(LearningCourseSeeder::class);
+        $this->actingAs(User::create(['name' => 'T', 'email' => 't@example.com', 'password' => 'password']));
     }
 
     public function test_course_material_is_seeded_completely_and_reseeding_is_safe(): void

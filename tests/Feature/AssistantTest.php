@@ -42,106 +42,6 @@ class AssistantTest extends TestCase
             ->assertStatus(400);
     }
 
-    public function test_without_a_key_indicator_questions_get_the_built_in_answer_with_a_note(): void
-    {
-        Http::fake();
-
-        $this->postJson('/api/scorm/qa-assistant', ['student_question' => 'Ի՞նչ է ԻՆԴԻԿԱՏՈՐԸ', 'active_section' => 'video'])
-            ->assertOk()
-            ->assertJsonPath('citations.0.reference_label', 'Սլայդներ 3–4')
-            ->assertJsonPath('notice', 'Նշում․ ցուցադրվում է դասընթացի ներկառուցված պատասխան։ Լայն, ազատ AI պատասխանների համար պետք է միացված լինի OpenAI API բանալին։');
-
-        Http::assertNothingSent();
-    }
-
-    public function test_off_topic_questions_are_declined_locally(): void
-    {
-        $this->postJson('/api/scorm/qa-assistant', ['student_question' => 'Բարև, ինչպե՞ս ես'])
-            ->assertOk()
-            ->assertJsonPath('citations', [])
-            ->assertJsonPath('answer_armenian', 'Ես նախագծված եմ օգնելու միայն այս դասընթացի շրջանակներում։ Խնդրում եմ հարցեր ուղղել կայուն զարգացման դասի նյութի վերաբերյալ։');
-    }
-
-    public function test_goal_questions_match_a_goal_by_number_or_title(): void
-    {
-        $this->postJson('/api/scorm/qa-assistant', ['student_question' => 'Ո՞րն է նպատակ 13-ը'])
-            ->assertOk()
-            ->assertJsonFragment(['answer_armenian' => 'Ըստ դասընթացի՝ 13-րդ նպատակը՝ «Կլիմայական գործողություններ», ուղղված է հետևյալ խնդրին․ Ձեռնարկել անհապաղ քայլեր կլիմայի փոփոխության և դրա ազդեցությունների դեմ։ Նպատակները փոխկապակցված են, ուստի դրանց առաջընթացը դիտարկվում է հարակից պայմանների հետ։']);
-    }
-
-    public function test_general_on_topic_questions_use_the_active_lesson(): void
-    {
-        $response = $this->postJson('/api/scorm/qa-assistant', ['student_question' => 'Ինչու՞ է կարևոր բնապահպանությունը', 'active_section' => 'video']);
-
-        $response->assertOk()->assertJsonPath('citations.0.source_type', 'video')->assertJsonPath('citations.0.reference_label', '01 · ՏԵՍԱԴԱՍ');
-        $this->assertStringContainsString('կայուն զարգացումը չափելի դարձնելը', $response->json('answer_armenian'));
-    }
-
-    public function test_with_a_key_the_model_answer_is_returned(): void
-    {
-        config(['services.openai.key' => 'sk-test', 'services.openai.model' => 'gpt-test']);
-        $this->fakeOpenAi(['answer_armenian' => 'AI պատասխան', 'citations' => [], 'suggested_followups_armenian' => []]);
-
-        $this->postJson('/api/scorm/qa-assistant', ['student_question' => 'Ի՞նչ է ինդիկատորը', 'active_section' => 'slides'])
-            ->assertOk()
-            ->assertJsonPath('answer_armenian', 'AI պատասխան');
-
-        Http::assertSent(function ($request) {
-            $input = json_decode($request['input'], true);
-
-            return $request->hasHeader('Authorization', 'Bearer sk-test')
-                && $request['model'] === 'gpt-test'
-                && $request['store'] === false
-                && $request['text']['format']['name'] === 'armenian_course_answer'
-                && $input['student_question'] === 'Ի՞նչ է ինդիկատորը'
-                && $input['active_section'] === '02 · ՍԼԱՅԴՆԵՐ'
-                && str_contains($input['course_material'], 'Մարդկային զարգացման համաթիվ')
-                && ! str_contains($input['course_material'], '<p>');
-        });
-    }
-
-    public function test_reasoning_output_before_the_answer_is_skipped(): void
-    {
-        config(['services.openai.key' => 'sk-test']);
-        Http::fake(['api.openai.com/*' => Http::response([
-            'output' => [
-                ['type' => 'reasoning', 'summary' => []],
-                ['type' => 'message', 'content' => [['type' => 'output_text', 'text' => json_encode([
-                    'answer_armenian' => 'AI պատասխան', 'citations' => [], 'suggested_followups_armenian' => [],
-                ])]]],
-            ],
-        ])]);
-
-        $this->postJson('/api/scorm/qa-assistant', ['student_question' => 'Ի՞նչ է ինդիկատորը', 'active_section' => 'slides'])
-            ->assertOk()
-            ->assertJsonPath('answer_armenian', 'AI պատասխան');
-
-        Http::assertSent(fn ($request) => $request['max_output_tokens'] >= 16000);
-    }
-
-    public function test_quota_errors_fall_back_to_the_built_in_answer_and_say_why(): void
-    {
-        config(['services.openai.key' => 'sk-test']);
-        Http::fake(['api.openai.com/*' => Http::response(['error' => ['type' => 'insufficient_quota', 'code' => 'insufficient_quota', 'message' => 'x']], 429)]);
-
-        $response = $this->postJson('/api/scorm/qa-assistant', ['student_question' => 'Ի՞նչ է ինդիկատորը']);
-
-        $response->assertOk()->assertJsonPath('citations.0.reference_label', 'Սլայդներ 3–4');
-        $this->assertStringContainsString('API billing', $response->json('notice'));
-        $this->assertStringContainsString('ներկառուցված պատասխանը', $response->json('notice'));
-    }
-
-    public function test_invalid_key_and_generic_errors_explain_themselves(): void
-    {
-        config(['services.openai.key' => 'sk-test']);
-        Http::fake(['api.openai.com/*' => Http::sequence()
-            ->push(['error' => ['type' => 'invalid_request_error', 'code' => 'invalid_api_key']], 401)
-            ->push(['error' => ['type' => 'server_error']], 500)]);
-
-        $this->assertStringContainsString('բանալին անվավեր', $this->postJson('/api/scorm/qa-assistant', ['student_question' => 'ինդիկատոր'])->json('notice'));
-        $this->assertStringContainsString('ժամանակավորապես', $this->postJson('/api/scorm/qa-assistant', ['student_question' => 'ինդիկատոր'])->json('notice'));
-    }
-
     public function test_short_answers_are_not_evaluated(): void
     {
         $this->postJson('/api/scorm/evaluate-open-ended', ['student_response' => 'կարճ'])
@@ -211,10 +111,10 @@ class AssistantTest extends TestCase
         config(['app.debug' => false]);
 
         for ($i = 0; $i < 20; $i++) {
-            $this->postJson('/api/scorm/qa-assistant', ['student_question' => 'ինդիկատոր'])->assertOk();
+            $this->postJson('/api/scorm/qa-assistant', ['student_question' => ' '])->assertStatus(400);
         }
 
-        $this->postJson('/api/scorm/qa-assistant', ['student_question' => 'ինդիկատոր'])
+        $this->postJson('/api/scorm/qa-assistant', ['student_question' => ' '])
             ->assertStatus(429)
             ->assertJsonPath('error', 'Հարցումների սահմանաչափը լրացել է։ Սպասեք մեկ րոպե և փորձեք կրկին։');
     }

@@ -4,8 +4,6 @@
 <template id="tpl-user-message"><div class="{{ $bubble }} bg-[linear-gradient(100deg,#b50055,#ed1747)] text-white self-end"></div></template>
 <template id="tpl-assistant-message"><div class="{{ $bubble }} bg-[#25122f] text-ink self-start"></div></template>
 <template id="tpl-citation"><div class="text-[#aad0a6] text-[9px] mt-[6px]"></div></template>
-<template id="tpl-followups"><div class="grid gap-[5px] mt-2"></div></template>
-<template id="tpl-followup"><button class="bg-[#251230] border border-[#593263] rounded-[5px] py-[6px] px-[7px] text-left text-[#f5f5f1] text-[8px] leading-[1.4] hover:bg-[#34143a] hover:border-[#ff3a78]"></button></template>
 
 <template id="tpl-evaluation-box"><div class="mt-3 p-3 rounded-[7px] bg-[#26382a] text-[#c6ddc3] text-[10px] leading-[1.65]"></div></template>
 <template id="tpl-evaluation-notice"><p class="text-[#aad0a6] text-[9px] mt-[6px] mb-[9px]"></p></template>

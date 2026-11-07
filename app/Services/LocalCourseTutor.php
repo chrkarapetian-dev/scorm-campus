@@ -2,9 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Goal;
-use App\Models\Lesson;
-use Illuminate\Support\Collection;
 
 /**
  * Rule-based answers and grading used when no model is available. These are
@@ -12,44 +9,6 @@ use Illuminate\Support\Collection;
  */
 class LocalCourseTutor
 {
-    /** @param Collection<int, Goal> $goals */
-    public function answer(string $question, Lesson $active, Collection $goals): array
-    {
-        $q = mb_strtolower($question);
-
-        if (! preg_match('/կայուն|զարգաց|ինդիկատ|ցուցանիշ|համաթիվ|ինդեքս|մզհ|կզհ|կրթ|եկամուտ|հնա|հաե|աղքատ|սով|գենդեր|կլիմա|ջուր|էներգիա|քաղաք|գործընկեր|նպատակ|բնապահպան|սոցիալ|տնտես|էկոլոգ|co2|hdi|sdg|index|indicator|sustainable development|poverty|climate|education|income|gender|water|energy|goal|why|how|explain/iu', $q)) {
-            return [
-                'answer_armenian' => 'Ես նախագծված եմ օգնելու միայն այս դասընթացի շրջանակներում։ Խնդրում եմ հարցեր ուղղել կայուն զարգացման դասի նյութի վերաբերյալ։',
-                'citations' => [],
-                'suggested_followups_armenian' => ['Ի՞նչ է կայուն զարգացման ինդիկատորը։', 'Ի՞նչ է չափում մարդկային զարգացման համաթիվը։'],
-            ];
-        }
-
-        if (preg_match('/ինդիկատոր|ցուցանիշ|indicator|չափելի|չափել/u', $q)) {
-            $answer = 'Ըստ դասընթացի՝ կայուն զարգացման ինդիկատորը չափելի արժեք է, որը նկարագրում է տնտեսական, սոցիալական կամ էկոլոգիական ոլորտի վիճակը կամ փոփոխությունը։ Այն բարդ երևույթը դարձնում է համեմատելի և օգնում է հիմնավորել որոշումները։';
-            $citations = [['source_type' => 'slide', 'reference_label' => 'Սլայդներ 3–4'], ['source_type' => 'literature', 'reference_label' => 'Թեմա 8 ընթերցանության նյութ']];
-        } elseif (preg_match('/համաթիվ|ինդեքս|մզհ|կզհ|hdi|հնա|հաե|եկամուտ|index/u', $q)) {
-            $answer = 'Ըստ դասընթացի՝ Մարդկային զարգացման համաթիվը համադրում է կյանքի սպասվող տևողության, կրթության և մեկ անձի հաշվով համախառն ազգային եկամտի չափումները։ Կայուն զարգացման համաթիվը լրացնում է պատկերը էկոլոգիական չափումներով, այդ թվում՝ մեկ շնչի հաշվով CO₂ արտանետումներով և նյութական ոտնահետքով։';
-            $citations = [['source_type' => 'slide', 'reference_label' => 'Սլայդներ 5–7 և 10–11'], ['source_type' => 'literature', 'reference_label' => 'Թեմա 8 ընթերցանության նյութ']];
-        } elseif (preg_match('/նպատակ|goal|աղքատ|սով|գենդեր|կլիմա|ջուր|էներգիա|քաղաք|գործընկեր|poverty|climate|water|energy/u', $q)) {
-            $goal = $this->matchGoal($q, $goals);
-            $answer = $goal
-                ? "Ըստ դասընթացի՝ {$goal->number}-րդ նպատակը՝ «{$goal->title}», ուղղված է հետևյալ խնդրին․ {$goal->summary} Նպատակները փոխկապակցված են, ուստի դրանց առաջընթացը դիտարկվում է հարակից պայմանների հետ։"
-                : 'Ըստ դասընթացի՝ ՄԱԿ-ի 17 նպատակները ներառում են աղքատության նվազեցում, առողջություն, կրթություն, հավասարություն, շրջակա միջավայր և համագործակցություն։ Դրանք փոխկապակցված են։';
-            $citations = [['source_type' => 'slide', 'reference_label' => 'Սլայդներ 13–32'], ['source_type' => 'literature', 'reference_label' => 'Թեմա 8 ընթերցանության նյութ']];
-        } else {
-            $topic = mb_strtolower($active->title);
-            $answer = "Ըստ այս բաժնի՝ {$topic} թեման կապում է կայուն զարգացման չափումները հասարակության և շրջակա միջավայրի խնդիրների հետ։ {$active->lead}";
-            $citations = [['source_type' => $active->id === 'video' ? 'video' : 'literature', 'reference_label' => $active->label]];
-        }
-
-        return [
-            'answer_armenian' => $answer,
-            'citations' => $citations,
-            'suggested_followups_armenian' => ['Ինչո՞վ են տարբերվում ինդիկատորն ու համաթիվը։', 'Ինչպե՞ս կարող է համայնքը ընտրել օգտակար ինդիկատոր։'],
-        ];
-    }
-
     public function evaluate(string $answer): array
     {
         $s = mb_strtolower($answer);
@@ -139,21 +98,5 @@ class LocalCourseTutor
                 ? 'Վերանայեք թեմայի հիմնական գաղափարները, պատասխանեք հարցի բոլոր մասերին և բերեք համապատասխան օրինակ ու չափելի տվյալ։'
                 : 'Ուժեղացրեք հիմնավորումը՝ բացատրելով, թե առաջարկված տվյալը ինչպես է ցույց տալիս կայուն զարգացման առաջընթացը։',
         ];
-    }
-
-    /** @param Collection<int, Goal> $goals */
-    private function matchGoal(string $q, Collection $goals): ?Goal
-    {
-        $number = null;
-
-        if (preg_match('/(?:նպատակ|goal|sdg|թիվ)\D{0,8}(1[0-7]|[1-9])|(?:^|\s)(1[0-7]|[1-9])(?:\s|$)/u', $q, $m)) {
-            $number = (int) ($m[1] ?: ($m[2] ?? 0));
-        }
-
-        return $goals->first(function (Goal $goal) use ($q, $number) {
-            $firstWord = explode(' ', mb_strtolower($goal->title))[0];
-
-            return $goal->number === $number || str_contains($q, $firstWord);
-        });
     }
 }

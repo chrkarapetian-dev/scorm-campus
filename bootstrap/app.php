@@ -1,13 +1,11 @@
 <?php
 
-use App\Http\Controllers\CourseContentController;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\PostTooLargeException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -19,12 +17,6 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
-        then: function () {
-            // Course files load in bulk and need no session, so they stay outside the web group.
-            Route::get('/content/{course}/{path}', CourseContentController::class)
-                ->where(['course' => '[a-f0-9]{16}', 'path' => '.+'])
-                ->name('course.content');
-        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Comma-separated proxy IPs, or "*", when running behind a TLS-terminating proxy.
@@ -41,7 +33,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->is('api/*')) {
-                return response()->json(['error' => 'Հարց տալու համար մուտք գործեք ձեր հաշիվ։'], 401);
+                return response()->json(['error' => 'Շարունակելու համար մուտք գործեք ձեր հաշիվ։'], 401);
+            }
+
+            // Logging in should lead to the app, not to whichever course file was requested last.
+            if ($request->is('content/*', 'courses/*')) {
+                return redirect()->route('login');
             }
         });
 

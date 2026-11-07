@@ -8,6 +8,6 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call(LearningCourseSeeder::class);
+        $this->call([LearningCourseSeeder::class, BundledCourseSeeder::class]);
     }
 }

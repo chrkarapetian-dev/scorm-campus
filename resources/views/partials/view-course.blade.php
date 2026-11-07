@@ -16,7 +16,7 @@
     <section class="mt-8 mb-[38px] max-compact:mt-[23px] max-compact:mb-7">
         <x-section-heading eyebrow="ՀԱՐՑՐԵՔ ԴԱՍԸՆԹԱՑԻ ՄԱՍԻՆ" title="Սովորեք հարցերի միջոցով" text="Տվեք հարց դասի նյութի մասին և ստացեք թեմային համապատասխան պատասխան։" />
 
-        <aside id="assistant-panel" class="flex flex-col w-full min-h-[390px] border border-[#47224a] rounded-[11px] bg-[#12091d]">
+        <aside id="assistant-panel" class="group/assistant flex flex-col w-full min-h-[390px] data-unavailable:min-h-0 border border-[#47224a] rounded-[11px] bg-[#12091d]">
             <div class="py-[17px] px-5 border-b border-[#382040] flex items-center justify-between max-compact:p-[13px]">
                 <div class="flex gap-[9px] items-center">
                     <div class="w-7 h-7 grid place-items-center rounded-[8px] bg-[linear-gradient(135deg,#ff1744,#b60065)] shadow-[0_0_14px_#e5091455] text-white">✦</div>
@@ -26,26 +26,23 @@
                     </div>
                 </div>
             </div>
-            <div class="py-[10px] px-5 text-[#a3a3a3] text-[10px] border-b border-[#382040]">Հիմք՝ Թեմա 8 նյութեր
-                @auth · Մնացած հարցեր՝ <span id="questions-remaining">{{ auth()->user()->aiQuestionsRemaining() }}</span>/{{ config('services.openai.question_limit') }}@endauth
+            <div class="py-[10px] px-5 text-[#a3a3a3] text-[10px] border-b border-[#382040] group-data-unavailable/assistant:hidden"><span id="assistant-source">Հիմք՝ դասընթացի նյութեր</span> · Մնացած հարցեր՝ <span id="questions-remaining">{{ auth()->user()->aiQuestionsRemaining() }}</span>/{{ config('services.openai.question_limit') }}
             </div>
-            <div id="chat-messages" class="flex-1 overflow-auto py-[18px] px-5 flex flex-col gap-[13px] min-h-[230px] bg-[#0e0818] max-compact:min-h-[205px] max-compact:p-3">
-                <div class="text-[12px] leading-[1.75] py-[13px] px-[15px] rounded-[8px] max-w-[95%] whitespace-pre-wrap bg-[#25122f] text-ink self-start">Բարև։ Հարցրեք կայուն զարգացման ցուցանիշների, համաթվերի կամ 17 նպատակների մասին։</div>
+            <div id="chat-messages" class="group-data-unavailable/assistant:hidden flex-1 overflow-auto py-[18px] px-5 flex flex-col gap-[13px] min-h-[230px] bg-[#0e0818] max-compact:min-h-[205px] max-compact:p-3">
+                <div class="text-[12px] leading-[1.75] py-[13px] px-[15px] rounded-[8px] max-w-[95%] whitespace-pre-wrap bg-[#25122f] text-ink self-start">Բարև։ Հարցրեք այս դասընթացի նյութի մասին։</div>
             </div>
-            @auth
-                <div id="questions-exhausted" @if (auth()->user()->aiQuestionsRemaining() > 0) hidden @endif class="mx-[18px] mb-[6px] p-[10px] border border-[#4b2a51] bg-[#1c1026] rounded-[8px] text-[12px] max-compact:mx-[10px] max-compact:mb-[5px]">Դուք օգտագործել եք AI-ին հարց տալու ձեր բոլոր հնարավորությունները։</div>
-                <form id="chat-form" @if (auth()->user()->aiQuestionsRemaining() === 0) hidden @endif class="flex gap-[7px] items-end mx-[18px] mb-[6px] p-[10px] border border-[#4b2a51] bg-[#1c1026] rounded-[8px] max-compact:mx-[10px] max-compact:mb-[5px]">
-                <textarea id="chat-input" rows="3" placeholder="Գրեք ձեր հարցը…" aria-label="Հարց գրեք" class="border-0 p-[2px] resize-none bg-transparent outline-0 focus-visible:outline-0 text-[#f5f5f1] text-[12px] leading-[1.6] flex-1 min-h-[48px] placeholder:text-[#8c8c8c]"></textarea>
-                <button type="submit" aria-label="Ուղարկել հարցը" class="w-9 h-9 py-px px-[6px] border-0 rounded-[6px] bg-[linear-gradient(135deg,#ff1744,#d80063)] shadow-[0_0_12px_#ff174433] text-white font-extrabold">↑</button>
+            <div id="assistant-unavailable" hidden class="m-[18px] p-[10px] border border-[#4b2a51] bg-[#1c1026] rounded-[8px] text-[12px] max-compact:m-[10px]">Այս դասընթացի համար AI օգնականը դեռ հասանելի չէ։</div>
+            <div id="questions-exhausted" hidden class="mx-[18px] mb-[6px] p-[10px] border border-[#4b2a51] bg-[#1c1026] rounded-[8px] text-[12px] max-compact:mx-[10px] max-compact:mb-[5px]">Դուք օգտագործել եք AI-ին հարց տալու ձեր բոլոր հնարավորությունները։</div>
+            <form id="chat-form" hidden class="flex gap-[7px] items-end mx-[18px] mb-[6px] p-[10px] border border-[#4b2a51] bg-[#1c1026] rounded-[8px] max-compact:mx-[10px] max-compact:mb-[5px]">
+                <textarea id="chat-input" rows="3" maxlength="{{ config('services.openai.question_max_length') }}" placeholder="Գրեք ձեր հարցը…" aria-label="Հարց գրեք" class="border-0 p-[2px] resize-none bg-transparent outline-0 focus-visible:outline-0 text-[#f5f5f1] text-[12px] leading-[1.6] flex-1 min-h-[48px] placeholder:text-[#8c8c8c]"></textarea>
+                <span class="self-end text-[10px] text-[#a3a3a3] whitespace-nowrap"><span id="chat-count">0</span>/{{ config('services.openai.question_max_length') }}</span>
+                <button id="chat-submit" type="submit" aria-label="Ուղարկել հարցը" class="w-9 h-9 py-px px-[6px] border-0 rounded-[6px] bg-[linear-gradient(135deg,#ff1744,#d80063)] shadow-[0_0_12px_#ff174433] text-white font-extrabold disabled:opacity-50">↑</button>
             </form>
-            @else
-                <div class="mx-[18px] mb-[6px] p-[10px] border border-[#4b2a51] bg-[#1c1026] rounded-[8px] text-[12px] max-compact:mx-[10px] max-compact:mb-[5px]">Հարց տալու համար <a href="{{ route('login') }}" class="text-accent-pale hover:underline">մուտք գործեք</a> կամ <a href="{{ route('register') }}" class="text-accent-pale hover:underline">գրանցվեք</a>։</div>
-            @endauth
-            <div class="pt-[9px] px-5 pb-[13px] text-[#a3a3a3] text-[10px]">Պատասխանները հիմնվում են այս դասընթացի նյութերի վրա։</div>
+            <div class="pt-[9px] px-5 pb-[13px] text-[#a3a3a3] text-[10px] group-data-unavailable/assistant:hidden">Հարցերը գրեք հայերենով։ Եթե պատասխանը նյութում չգտնվի, հարցը չի հաշվվում։</div>
         </aside>
     </section>
 
-    <section class="mt-8 mb-[38px] border border-line-strong rounded-[11px] bg-surface p-6 max-compact:mt-[23px] max-compact:mb-7 max-compact:p-4">
+    <section id="open-question" hidden class="mt-8 mb-[38px] border border-line-strong rounded-[11px] bg-surface p-6 max-compact:mt-[23px] max-compact:mb-7 max-compact:p-4">
         <x-section-heading eyebrow="ԻՆՔՆՈՒՐՈՒՅՆ ՄՏԱԾՈՂՈՒԹՅՈՒՆ" title="Բաց հարց" text="Մտածեք կայուն զարգացման մասին՝ որպես մարդկանց կյանքի որակը, տնտեսությունն ու շրջակա միջավայրը միասին դիտարկող մոտեցում։" />
 
         <div class="border border-[#42264d] bg-raised rounded-[9px] p-5 mb-[14px] max-compact:p-[14px]">

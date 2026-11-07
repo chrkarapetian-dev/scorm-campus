@@ -23,9 +23,21 @@ class OpenAiResponses
      */
     public function json(array $format, string $instructions, array $input): array
     {
+        return $this->respond($format, $instructions, $input)['data'];
+    }
+
+    /**
+     * Same as json(), and also reports the tokens used.
+     *
+     * @return array{data: array, usage: ?array}
+     *
+     * @throws OpenAiRequestFailed
+     */
+    public function respond(array $format, string $instructions, array $input): array
+    {
         try {
             $response = Http::withToken(config('services.openai.key'))
-                ->timeout(45)
+                ->timeout(config('services.openai.timeout'))
                 ->post(self::ENDPOINT, [
                     'model' => config('services.openai.model'),
                     'instructions' => $instructions,
@@ -54,7 +66,7 @@ class OpenAiResponses
                     $decoded = json_decode($content['text'] ?? '', true);
 
                     if (is_array($decoded)) {
-                        return $decoded;
+                        return ['data' => $decoded, 'usage' => $response->json('usage')];
                     }
 
                     throw new OpenAiRequestFailed('The AI service returned invalid JSON.');

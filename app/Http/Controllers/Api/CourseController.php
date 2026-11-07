@@ -13,7 +13,7 @@ class CourseController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(ScormCourse::latest()->get()->map(fn (ScormCourse $course) => [
+        return response()->json(ScormCourse::available()->orderBy('number')->latest()->get()->map(fn (ScormCourse $course) => [
             'id' => $course->id,
             'title' => $course->title,
             'desc' => $course->description,

@@ -10,7 +10,7 @@ class CoursePageController extends Controller
 {
     public function __invoke(string $course): Response
     {
-        $course = ScormCourse::find($course);
+        $course = ScormCourse::available()->find($course);
 
         if ($course === null) {
             return response('Դասընթացը չի գտնվել։', 404)->header('Content-Type', 'text/html; charset=utf-8');

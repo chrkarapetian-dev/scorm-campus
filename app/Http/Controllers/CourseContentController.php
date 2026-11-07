@@ -7,30 +7,49 @@ use App\Services\ScormPackageImporter;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 
-/** Serves unpacked package files. Range requests matter here: Storyline's video player seeks with them. */
+/** Serves course files to logged-in users. Range requests matter here: Storyline's video player seeks with them. */
 class CourseContentController extends Controller
 {
     public function __invoke(string $course, string $path): Response
     {
-        if (! ScormPackageImporter::isSafePath($path) || ! ScormCourse::whereKey($course)->exists()) {
+        return $this->serve(ScormCourse::available()->find($course), $path);
+    }
+
+    public function bundled(string $number, string $path): Response
+    {
+        return $this->serve(ScormCourse::available()->where('number', $number)->first(), $path);
+    }
+
+    private function serve(?ScormCourse $course, string $path): Response
+    {
+        if ($course === null || ! ScormPackageImporter::isSafePath($path)) {
             return $this->notFound();
         }
 
-        $root = config('scorm.storage_path').DIRECTORY_SEPARATOR.$course;
-        $file = realpath($root.DIRECTORY_SEPARATOR.$path);
+        $root = realpath($course->storagePath());
+        $file = realpath($course->storagePath().DIRECTORY_SEPARATOR.$path);
 
-        if ($file === false || ! is_file($file) || ! str_starts_with($file, realpath($root).DIRECTORY_SEPARATOR)) {
+        if ($root === false || $file === false || ! is_file($file) || ! str_starts_with($file, $root.DIRECTORY_SEPARATOR)) {
             return $this->notFound();
         }
 
         $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-
-        return new BinaryFileResponse($file, 200, [
+        $headers = [
             'Content-Type' => config("scorm.mime_types.{$extension}", 'application/octet-stream'),
             'X-Content-Type-Options' => 'nosniff',
             'Accept-Ranges' => 'bytes',
-            'Cache-Control' => 'no-store',
-        ], public: false, autoLastModified: false);
+            // A launch page must not outlive the session. Assets are stored only in this user's browser.
+            'Cache-Control' => in_array($extension, ['html', 'htm'], true) ? 'no-store' : 'private, max-age=3600',
+        ];
+
+        // Nginx sends the file itself, so a long video doesn't hold a PHP worker.
+        if ($course->number !== null && filled($prefix = config('scorm.x_accel_prefix'))) {
+            $relative = "course{$course->number}/".implode('/', array_map('rawurlencode', explode('/', $path)));
+
+            return response('', 200, $headers + ['X-Accel-Redirect' => $prefix.$relative]);
+        }
+
+        return new BinaryFileResponse($file, 200, $headers, public: false, autoLastModified: false);
     }
 
     private function notFound(): Response

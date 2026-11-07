@@ -5,14 +5,18 @@ use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\LearningCourseController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/learning-course', [LearningCourseController::class, 'show']);
-Route::post('/recommendations', [LearningCourseController::class, 'recommendations']);
-
-Route::get('/courses', [CourseController::class, 'index']);
+// Protected by its upload token instead of a session.
 Route::post('/courses', [CourseController::class, 'store']);
 
-Route::middleware('throttle:assistant')->prefix('scorm')->group(function () {
-    // Needs the logged-in user, so it runs with the session and CSRF protection of the web group.
-    Route::post('/qa-assistant', [AssistantController::class, 'question'])->middleware(['web', 'auth']);
-    Route::post('/evaluate-open-ended', [AssistantController::class, 'evaluate']);
+// These need the logged-in user, so they run with the session and CSRF protection of the web group.
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/learning-course', [LearningCourseController::class, 'show']);
+    Route::post('/recommendations', [LearningCourseController::class, 'recommendations']);
+
+    Route::get('/courses', [CourseController::class, 'index']);
+
+    Route::middleware('throttle:assistant')->prefix('scorm')->group(function () {
+        Route::post('/qa-assistant', [AssistantController::class, 'question']);
+        Route::post('/evaluate-open-ended', [AssistantController::class, 'evaluate']);
+    });
 });

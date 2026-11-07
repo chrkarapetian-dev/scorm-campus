@@ -1,4 +1,4 @@
-.PHONY: up down
+.PHONY: up down rebuild-cache
 
 up:
 	@test -f .env || cp .env.example .env
@@ -7,3 +7,6 @@ up:
 
 down:
 	docker compose down
+
+rebuild-cache:
+	docker compose exec -T app php artisan courses:rebuild-cache

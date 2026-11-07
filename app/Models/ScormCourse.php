@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * A SCORM package uploaded through the app. Its files live on disk under
- * config('scorm.storage_path')/{id}; this row is the catalogue entry.
+ * A course in the catalogue: one of the numbered bundled courses, with files in
+ * config('scorm.courses_path')/course{number}, or a SCORM package uploaded through
+ * the app, with files in config('scorm.storage_path')/{id}.
  */
 class ScormCourse extends Model
 {
@@ -14,18 +16,30 @@ class ScormCourse extends Model
 
     protected $keyType = 'string';
 
-    protected $fillable = ['id', 'title', 'description', 'category', 'launch_path'];
+    protected $fillable = ['id', 'number', 'title', 'description', 'category', 'launch_path', 'is_available'];
+
+    protected function casts(): array
+    {
+        return ['number' => 'integer', 'is_available' => 'boolean'];
+    }
+
+    public function scopeAvailable(Builder $query): void
+    {
+        $query->where('is_available', true);
+    }
 
     public function storagePath(): string
     {
-        return config('scorm.storage_path').DIRECTORY_SEPARATOR.$this->id;
+        return $this->number !== null
+            ? config('scorm.courses_path').DIRECTORY_SEPARATOR."course{$this->number}"
+            : config('scorm.storage_path').DIRECTORY_SEPARATOR.$this->id;
     }
 
-    /** Public URL of the package's launch page, with each path segment encoded. */
+    /** URL of the course's launch page, with each path segment encoded. */
     public function launchUrl(): string
     {
         $path = implode('/', array_map('rawurlencode', explode('/', $this->launch_path)));
 
-        return "/content/{$this->id}/{$path}";
+        return $this->number !== null ? "/courses/course{$this->number}/{$path}" : "/content/{$this->id}/{$path}";
     }
 }

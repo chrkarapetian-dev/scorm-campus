@@ -8,6 +8,9 @@ services:
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8080}:80"
+    volumes:
+      # Reachable only through the internal location Laravel redirects to after checking the session.
+      - ${COURSES_HOST_PATH:-./storage/courses}:/var/www/courses:ro
     depends_on:
       app:
         condition: service_healthy
@@ -38,10 +41,17 @@ services:
       UPLOAD_TOKEN: ${UPLOAD_TOKEN:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-6-luna}
+      OPENAI_TIMEOUT: ${OPENAI_TIMEOUT:-45}
+      AI_QUESTION_LIMIT: ${AI_QUESTION_LIMIT:-10}
+      AI_QUESTION_MAX_LENGTH: ${AI_QUESTION_MAX_LENGTH:-100}
+      AI_MAX_CHUNKS: ${AI_MAX_CHUNKS:-4}
+      COURSES_X_ACCEL_PREFIX: /_protected_courses/
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
     volumes:
       # Uploaded SCORM packages.
       - app-storage:/var/www/html/storage/app
+      # The Articulate courses are too big for an image, so they stay on the host.
+      - ${COURSES_HOST_PATH:-./storage/courses}:/var/www/html/storage/courses:ro
     depends_on:
       db:
         condition: service_healthy

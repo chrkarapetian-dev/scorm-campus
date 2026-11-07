@@ -8,6 +8,7 @@ Laravel 13, Blade, Tailwind 4, MySQL 8.4, Docker. Armenian SCORM course platform
 - Faster loop: `docker compose up -d db`, then `composer dev` (host PHP and Vite against the container DB).
 - Tests: `php artisan test [--filter=Name]`. They use in-memory SQLite and need no Docker.
 - Assets: `npm run build`.
+- `make rebuild-cache` re-chunks the course texts in the running stack.
 
 ## Saving tokens
 - Use graft (below) for PHP, JS and Blade. It does not index `resources/css/app.css`, `compose.yaml`, `Dockerfile`, `docker/` or `Makefile`; read those directly.
@@ -18,10 +19,12 @@ Laravel 13, Blade, Tailwind 4, MySQL 8.4, Docker. Armenian SCORM course platform
 - **The UI stays one page with tabs** (`home.blade.php`). Separate routes would reload the course iframe on every tab switch.
 - Markup the JS creates belongs in `partials/templates.blade.php`, not in JS strings, so Tailwind classes stay in the views.
 - **Learner progress lives in the browser's localStorage.** Don't rename the `usum-*` keys: learners would lose their progress. Storyline slide ids are in `config/scorm.php`.
-- **Package HTML runs on our origin.** Keep `ScormPackageImporter::isSafePath` checks, the production upload-token requirement in `CourseController`, and Nginx running only `index.php`. `/content/*` is registered outside the web middleware in `bootstrap/app.php`.
-- **Accounts:** session auth in `app/Http/Controllers/Auth`. Courses stay public; only `POST /api/scorm/qa-assistant` requires login. Use `User::reserveAiQuestion()` for the per-user limit (`AI_QUESTION_LIMIT`, default 10). Messages come from `lang/hy`.
+- **Package HTML runs on our origin.** Keep `ScormPackageImporter::isSafePath` checks, the production upload-token requirement in `CourseController`, and Nginx running only `index.php`. Don't add `internal`-less Nginx locations for course files.
+- **Accounts:** session auth in `app/Http/Controllers/Auth`. Everything needs login, including every course file, except `POST /api/courses`, which has its upload token. Use `User::reserveAiQuestion()` for the per-user limit (`AI_QUESTION_LIMIT`, default 10). Messages come from `lang/hy`.
+- **Course files stay out of `public/`:** Articulate courses are in `storage/courses/course{N}` (6.3 GB, not in git or images, bind-mounted read-only in Docker) and source texts in `storage/course_texts`. `CourseContentController` serves them; in Docker Nginx sends the file via `X-Accel-Redirect`.
+- **Course text** is `storage/course_texts/course{N}.txt`, one paragraph per line. It is baked into the image, so edits need `make up`. It is chunked once and kept in the cache (`CourseTextRepository`), and rebuilds when a file's size or mtime changes, or with `make rebuild-cache`. Bump `VERSION` there when chunking changes.
 - User-facing text and API `{error}` messages are Armenian.
-- The assistant falls back from OpenAI to `LocalCourseTutor` and returns a `notice` saying so. Keep that note honest.
+- The course assistant answers only from excerpts of the selected course, chosen by `CourseChunkSearch`. If OpenAI fails it returns an error and gives the question back. `LocalCourseTutor` remains only as the grader's fallback, with a `notice` saying so. Keep that note honest.
 - Local `.env` has debug on and Docker runs production. Error-handling tests must set `config(['app.debug' => false])`, or they miss production-only bugs.
 
 <!-- graft:start -->

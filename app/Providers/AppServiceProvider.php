@@ -12,7 +12,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         RateLimiter::for('assistant', fn (Request $request) => Limit::perMinute(20)
-            ->by($request->ip())
+            ->by($request->user()?->id ?: $request->ip())
             ->response(fn () => response()->json(
                 ['error' => 'Հարցումների սահմանաչափը լրացել է։ Սպասեք մեկ րոպե և փորձեք կրկին։'],
                 429,

@@ -19,6 +19,9 @@
                     <x-eyebrow>ՀԱՅԵՐԵՆ · SCORM ԴԱՍԸՆԹԱՑ</x-eyebrow>
                     <h2 class="font-display font-bold text-[23px] my-[9px]">{{ $course->title }}</h2>
                     <p class="text-[12px] text-prose leading-[1.7] mb-[22px]">Կայուն զարգացումը՝ չափելի փոփոխությունների, մարդկանց բարեկեցության և շրջակա միջավայրի պահպանության միջոցով։</p>
+                    @if ($hasAssistant[$course->id])
+                        <span class="text-[10px] font-bold text-accent-pale mb-[14px]">✦ AI օգնականը հասանելի է</span>
+                    @endif
                     <x-button class="mt-[5px]" data-open-course="{{ $course->id }}">Բացել Articulate դասը <span>→</span></x-button>
                 </div>
             </article>

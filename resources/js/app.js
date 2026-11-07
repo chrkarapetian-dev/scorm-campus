@@ -31,9 +31,16 @@ const postJson = async (url, body) => {
         },
         body: JSON.stringify(body),
     });
+
+    // The session ended: reloading leads to the login page.
+    if (response.status === 401 || response.status === 419) {
+        location.reload();
+        throw new Error('Շարունակելու համար մուտք գործեք ձեր հաշիվ։');
+    }
+
     const data = await response.json();
 
-    if (!response.ok) throw new Error(data.error);
+    if (!response.ok) throw Object.assign(new Error(data.error), { data });
 
     return data;
 };
@@ -125,6 +132,8 @@ function renderFeaturedCourse(item) {
     if (!item) return;
 
     setScormApi(item);
+    selectAssistantCourse(item);
+    $('open-question').hidden = !item.openQuestion;
     $('featured-course-title').textContent = item.title;
     $('featured-course').hidden = false;
 
@@ -261,63 +270,92 @@ function renderAnalytics() {
 
 // ---- Assistant ---------------------------------------------------------------
 
-function appendAnswer(bubble, data) {
-    bubble.textContent = data.answer_armenian;
+let assistantCourseId = activeCourse?.id ?? null;
+let questionsRemaining = Number($('questions-remaining').textContent);
+let assistantBusy = false;
+const assistantChats = new Map();
 
-    if (data.citations?.length) {
-        bubble.append(elementFromTemplate('tpl-citation', data.citations.map(citation => citation.reference_label).join(' · ')));
-    }
+function syncAssistant() {
+    const available = Boolean(activeCourse?.assistant);
 
-    if (data.suggested_followups_armenian?.length) {
-        const followups = elementFromTemplate('tpl-followups');
-
-        data.suggested_followups_armenian.slice(0, 2).forEach(text => {
-            const button = elementFromTemplate('tpl-followup', text);
-            button.addEventListener('click', () => askAssistant(text));
-            followups.append(button);
-        });
-
-        bubble.append(followups);
-    }
-
-    if (data.notice) bubble.append(elementFromTemplate('tpl-citation', data.notice));
+    $('questions-remaining').textContent = questionsRemaining;
+    $('assistant-panel').toggleAttribute('data-unavailable', !available);
+    $('assistant-unavailable').hidden = available;
+    $('questions-exhausted').hidden = !available || questionsRemaining > 0;
+    $('chat-form').hidden = !available || questionsRemaining === 0;
 }
 
-function updateQuestionsRemaining(remaining) {
-    $('questions-remaining').textContent = remaining;
-    $('chat-form').hidden = remaining === 0;
-    $('questions-exhausted').hidden = remaining > 0;
+// Each course keeps its own conversation, so an answer that arrives after switching course isn't lost.
+function selectAssistantCourse(item) {
+    if (assistantCourseId !== item.id) {
+        const messages = $('chat-messages');
+
+        assistantChats.set(assistantCourseId, [...messages.children]);
+        messages.replaceChildren(...(assistantChats.get(item.id) ?? [elementFromTemplate('tpl-assistant-message', 'Բարև։ Հարցրեք այս դասընթացի նյութի մասին։')]));
+        assistantCourseId = item.id;
+    }
+
+    $('assistant-source').textContent = `Հիմք՝ ${item.title} նյութեր`;
+    syncAssistant();
+}
+
+function setChatInput(value) {
+    $('chat-input').value = value;
+    $('chat-count').textContent = value.length;
 }
 
 async function askAssistant(question) {
     const messages = $('chat-messages');
     const pending = elementFromTemplate('tpl-assistant-message', 'Մտածում եմ…');
+    const courseId = assistantCourseId;
 
+    assistantBusy = true;
+    $('chat-submit').disabled = true;
     messages.append(elementFromTemplate('tpl-user-message', question), pending);
     messages.scrollTop = messages.scrollHeight;
 
     try {
-        const data = await postJson('/api/scorm/qa-assistant', { student_question: question, active_section: state.active });
+        const data = await postJson('/api/scorm/qa-assistant', { student_question: question, course_id: courseId });
 
-        appendAnswer(pending, data);
-        updateQuestionsRemaining(data.questions_remaining);
+        pending.textContent = data.answer;
+        questionsRemaining = data.questions_remaining;
     } catch (error) {
         pending.textContent = error.message && error.message !== 'Failed to fetch' ? error.message : 'Հարցին պատասխանել չհաջողվեց։';
+        questionsRemaining = error.data?.questions_remaining ?? questionsRemaining;
+
+        // The question wasn't answered, so it's still there to retry.
+        if (assistantCourseId === courseId && !$('chat-input').value) setChatInput(question);
     }
 
+    assistantBusy = false;
+    $('chat-submit').disabled = false;
+    syncAssistant();
     messages.scrollTop = messages.scrollHeight;
 }
 
-$('chat-form')?.addEventListener('submit', event => {
+$('chat-form').addEventListener('submit', event => {
     event.preventDefault();
 
     const question = $('chat-input').value.trim();
 
-    if (!question) return;
+    if (!question || assistantBusy) return;
 
-    $('chat-input').value = '';
+    setChatInput('');
     askAssistant(question);
 });
+
+$('chat-input').addEventListener('keydown', event => {
+    if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
+
+    event.preventDefault();
+    $('chat-form').requestSubmit();
+});
+
+$('chat-input').addEventListener('input', event => {
+    $('chat-count').textContent = event.target.value.length;
+});
+
+syncAssistant();
 
 // ---- Open question -------------------------------------------------------------
 

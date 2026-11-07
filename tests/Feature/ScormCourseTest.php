@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ScormCourse;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
@@ -22,6 +23,7 @@ class ScormCourseTest extends TestCase
         $this->root = sys_get_temp_dir().'/scorm-test-'.bin2hex(random_bytes(4));
         config(['scorm.storage_path' => $this->root, 'scorm.upload_token' => null]);
         $this->withoutVite();
+        $this->actingAs(User::create(['name' => 'T', 'email' => 't@example.com', 'password' => 'password']));
     }
 
     protected function tearDown(): void
@@ -219,7 +221,7 @@ class ScormCourseTest extends TestCase
     {
         $this->get('/')->assertOk()->assertSee('Դասընթացներ դեռ չկան։');
 
-        ScormCourse::create(['id' => str_repeat('a', 16), 'title' => 'Հին դաս', 'description' => 'd', 'category' => 'c', 'launch_path' => 'a.html', 'created_at' => now()->subDay()]);
+        ScormCourse::forceCreate(['id' => str_repeat('a', 16), 'title' => 'Հին դաս', 'description' => 'd', 'category' => 'c', 'launch_path' => 'a.html', 'created_at' => now()->subDay()]);
         ScormCourse::create(['id' => str_repeat('b', 16), 'title' => 'Նոր դաս', 'description' => 'd', 'category' => 'c', 'launch_path' => 'b c.html']);
 
         $this->get('/')
