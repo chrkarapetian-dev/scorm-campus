@@ -1,0 +1,85 @@
+name: scorm-campus-prod
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PROD_HTTP_PORT:-8081}:80"
+    volumes:
+      - ${COURSES_HOST_PATH:?Set COURSES_HOST_PATH in .env.prod}:/var/www/courses:ro
+    depends_on:
+      app:
+        condition: service_healthy
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    entrypoint: ["/bin/sh", "/var/www/html/docker/production/entrypoint.sh"]
+    command: ["php-fpm"]
+    restart: unless-stopped
+    environment:
+      APP_NAME: Ուսում
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      APP_KEY: ${APP_KEY:?Set APP_KEY in .env.prod}
+      APP_URL: ${APP_URL:?Set APP_URL in .env.prod}
+      APP_LOCALE: hy
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: warning
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:?Set DB_DATABASE in .env.prod}
+      DB_USERNAME: ${DB_USERNAME:?Set DB_USERNAME in .env.prod}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.prod}
+      CACHE_STORE: database
+      SESSION_DRIVER: database
+      SESSION_SECURE_COOKIE: 'true'
+      SESSION_ENCRYPT: 'true'
+      QUEUE_CONNECTION: sync
+      UPLOAD_TOKEN: ${UPLOAD_TOKEN:?Set UPLOAD_TOKEN in .env.prod}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-6-luna}
+      OPENAI_TIMEOUT: ${OPENAI_TIMEOUT:-45}
+      AI_QUESTION_LIMIT: ${AI_QUESTION_LIMIT:-10}
+      AI_QUESTION_MAX_LENGTH: ${AI_QUESTION_MAX_LENGTH:-100}
+      AI_MAX_CHUNKS: ${AI_MAX_CHUNKS:-4}
+      COURSES_X_ACCEL_PREFIX: /_protected_courses/
+      TRUSTED_PROXIES: '*'
+    volumes:
+      - app-storage:/var/www/html/storage/app
+      - ${COURSES_HOST_PATH:?Set COURSES_HOST_PATH in .env.prod}:/var/www/html/storage/courses:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 9000"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:?Set DB_DATABASE in .env.prod}
+      MYSQL_USER: ${DB_USERNAME:?Set DB_USERNAME in .env.prod}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.prod}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env.prod}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+volumes:
+  app-storage:
+  mysql-data:

@@ -4,6 +4,7 @@
 .env.backup
 .env.local
 .env.production
+.env.prod
 .phpactor.json
 .phpunit.result.cache
 /.codex
@@ -29,3 +30,5 @@ node_modules/
 Thumbs.db
 /public/courses
 /storage/courses
+
+/.prod-deploy.lock/

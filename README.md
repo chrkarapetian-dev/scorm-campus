@@ -37,7 +37,7 @@ curl -H "X-Upload-Token: $UPLOAD_TOKEN" -F package=@course.zip -F title="Կայ�
 
 `.env`-ում լրացրեք `OPENAI_API_KEY` (և ըստ ցանկության `OPENAI_MODEL`, լռելյայն՝ `gpt-6-luna`), ապա գործարկեք `make up`։ Բանալին մնում է սերվերում։ Սովորողի հարցերն ու պատասխաններն այդ դեպքում ուղարկվում են OpenAI API, և օգտագործումը կարող է վճարովի լինել։
 
-Առանց բանալու կամ API-ի սխալի դեպքում օգտագործվում են նախապես գրված պատասխաններ և բառային համապատասխանության վրա հիմնված ցուցադրական գնահատում, ինչի մասին սովորողը տեսնում է նշում։ Դա ակադեմիական հաստատված գնահատական չէ։
+Առանց բանալու օգնականը հասանելի չէ։ API-ի սխալի դեպքում հարցը վերադարձվում է սովորողին։ Բաց պատասխանի գնահատումը կարող է օգտագործել տեղային պահուստային տարբերակ՝ ցուցադրելով համապատասխան նշում։
 
 ## Մշակում
 
@@ -62,7 +62,49 @@ composer dev
 ## Տվյալներ և սահմանափակումներ
 
 - Սովորողի առաջընթացը պահվում է նրա դիտարկչի `localStorage`-ում։ Կենտրոնական մատյան և վճարումներ չկան։
-- Օգնականին հարց տալու համար պետք է մուտք գործել (`/login`, `/register`)։ Յուրաքանչյուր օգտատեր կարող է տալ 10 հարց (`AI_QUESTION_LIMIT`)։ Օգտագործված հարցերի քանակը պահվում է `users.ai_questions_used` դաշտում։
+- Հարթակից և դասընթացի ֆայլերից օգտվելու համար պետք է մուտք գործել (`/login`, `/register`)։ Յուրաքանչյուր օգտատեր կարող է տալ 10 հարց (`AI_QUESTION_LIMIT`)։ Օգտագործված հարցերի քանակը պահվում է `users.ai_questions_used` դաշտում։
 - MySQL-ում պահվում են դասընթացների ցանկը, դասանյութը և հարցումների սահմանաչափի քեշը։
 - SCORM ընդունողը MVP է և չի ապահովում ամբողջական SCORM համապատասխանություն։
 - Հրապարակային տեղակայման դեպքում օգտագործեք HTTPS՝ `TRUSTED_PROXIES` կարգավորելով պրոքսիի համար։
+
+## Local and production operations
+
+Local Docker uses `compose.yaml`, `.env`, and the existing `scorm-campus` project. Copy `.env.example` to `.env` if needed and set local database passwords; `make up` also creates it if absent. The stack is at `http://localhost:8080`. `make down` retains its volumes. Host development remains available through `docker compose up -d db` and `composer dev`.
+
+| Action | Local | Production |
+| --- | --- | --- |
+| Build, start and migrate | `make up` | `make prod-up` |
+| Stop (preserves volumes) | `make down` | `make prod-down` |
+| Re-chunk all course texts | `make rebuild-cache` | `make prod-rebuild-cache` |
+| Clear Laravel caches | `make clear` | `make prod-clear` |
+| Apply pending migrations | `make migrate` | `make prod-migrate` |
+| MySQL shell | `make exec-db` | `make prod-exec-db` |
+| App shell | `make exec-app` | `make prod-exec-app` |
+
+`optimize:clear` also clears the default database cache, including course chunks and any other entries using that cache. Chunks are rebuilt on demand or on the next `prod-up`. PHP source and course texts are baked into images and require a rebuild. Course packages are mounted separately.
+
+## Production VPS
+
+Use a supported Linux VPS with Docker Engine, the Compose plugin (v2, with `--wait`), Git, Make, host Nginx and Certbot's Nginx plugin. Allow inbound ports 80 and 443 in the VPS firewall and provider firewall; restrict SSH to trusted users. Docker's MySQL port is not published. The production web port is bound to loopback only, so host Nginx is the public entry point. Local and production use different Compose project names, networks, images and named volumes. Production uses the same multi-stage Dockerfile with production-only Compose settings and entrypoint.
+
+Initial server steps (run on the VPS):
+
+1. Install Docker Engine and the Compose plugin using Docker's official instructions for the server OS. Install Git, Make, Nginx, Certbot and its Nginx plugin using the OS package manager. Ensure your deploy user can run Docker; Docker access grants root-equivalent privileges.
+2. Clone the repository and enter it. Copy `.env.prod.example` to `.env.prod`, restrict it with `chmod 600 .env.prod`, and edit it. Set a persistent, unique `APP_KEY`, `APP_URL=https://your-domain`, independent strong database and root passwords, an independent upload token, and the absolute `COURSES_HOST_PATH`. Set `OPENAI_API_KEY` if the assistant is required. For example, generate a key with `printf 'base64:'; openssl rand -base64 32` and paste the full result into `APP_KEY`. Back up this key securely and do not change it on subsequent deployments. Never commit `.env.prod`.
+3. Copy the actual `course1` … `course11` package directories to `COURSES_HOST_PATH` on the VPS, preserving all files. They are not in Git or the images and both containers need read access. Course texts in `storage/course_texts` are in the image; texts for courses 1, 2, 7 and 11 are currently absent, so their assistants are unavailable until those texts are provided. Run `make prod-up` after adding or changing text files.
+4. Point your domain's DNS A/AAAA records to the VPS. Only publish an AAAA record if IPv6 works. Copy `docker/production/nginx-host.conf.example` to `/etc/nginx/sites-available/scorm-campus`, replace `example.com` with the real hostname, and enable it under `sites-enabled`. Match its upstream port to `PROD_HTTP_PORT`. Remove any conflicting default site, run `sudo nginx -t`, then reload Nginx.
+5. Run `make prod-up`. This builds images, waits for MySQL, stops web traffic, runs pending migrations, re-runs the existing idempotent seeders, warms missing or stale course chunks, starts containers and checks Laravel's `/up` route. The seeders update bundled catalogue and learning content from the repository; do not edit those seeded records manually. A failed initialization leaves the web container stopped; inspect the error, restore from a backup if necessary, and rerun. Deployment is not zero downtime and schema migrations are not automatically rolled back.
+6. After DNS resolves and HTTP on port 80 is reachable, run `sudo certbot --nginx -d your-domain` and select HTTPS redirection. Confirm certificate renewal with `sudo certbot renew --dry-run`. The host proxy must overwrite forwarded headers as in the example: Laravel trusts its internal proxy chain, and the Docker web port must remain loopback-only. Secure cookies require HTTPS. Verify login, course playback and upload behavior over the real HTTPS domain.
+
+For later deployments, from the checkout on the VPS:
+
+```sh
+git pull
+make prod-up
+```
+
+Deployment and `make prod-migrate` use the same host lock to prevent concurrent migration commands on this single VPS. If interrupted by a crash, check that no deployment is running before manually removing `.prod-deploy.lock`. Do not run migrations independently in another container or host. Keep `APP_KEY`, `DB_DATABASE`, `DB_USERNAME` and passwords stable; changing MySQL initialization variables does not alter an existing database or user.
+
+Back up MySQL with a consistent `mysqldump --single-transaction` and separately back up the production `app-storage` volume, course package directory, `.env.prod` and any externally maintained source texts. Encrypt backups, store copies off-server, and periodically test restoration. Database volumes, uploads and course files are not removed by normal commands; never use `down -v` for normal deployments. Browser progress is local to each learner's browser and is not part of server backups.
+
+Troubleshooting: check `docker compose --env-file .env.prod -f compose.prod.yaml ps` and service logs; verify disk space, credentials, the course mount and Docker health. A 502 usually means the app has not passed its health check or the proxy port differs. A 404 for a course can indicate missing files or an unavailable catalogue row; verify the mount then rerun `make prod-up`. After certificate or DNS changes verify renewal and proxy headers. `OPENAI_API_KEY` and working outbound HTTPS are required for the assistant; API failures return an error, while the open-answer grader can use its local fallback with a notice.
