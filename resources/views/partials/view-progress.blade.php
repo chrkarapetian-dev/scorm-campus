@@ -26,7 +26,7 @@
     <div class="grid gap-2">
         <div class="flex justify-between items-baseline gap-3 mt-[26px] mb-[10px] text-ink max-compact:items-start max-compact:flex-col max-compact:gap-[5px]">
             <strong>Storyline դասընթացի բաժիններ</strong>
-            <span class="text-muted text-[11px]">Կարգավիճակը թարմացվում է դասընթացի ներսում</span>
+            <span class="text-muted text-[11px]">Նյութերն ու գրականությունը նշվում են ավարտված՝ դրանք բացելուց և դուրս գալուց հետո, իսկ տեսանյութը՝ 90% դիտելուց հետո։</span>
         </div>
 
         @foreach ($sections as $section)

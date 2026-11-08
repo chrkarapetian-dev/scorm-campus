@@ -23,6 +23,8 @@ function readAll() {
 }
 
 function scorePercent(score, min, max) {
+    if (score === undefined || score === null || String(score).trim() === '') return null;
+
     const value = Number(score), low = Number(min || 0), high = Number(max || 100);
 
     return Number.isFinite(value) && high > low ? Math.max(0, Math.min(100, Math.round((value - low) / (high - low) * 100))) : null;
@@ -141,11 +143,18 @@ export function createStorylineTracker({ sections, frames, onChange }) {
         progress.lastLocation = location;
 
         const raw = progress.scorm['cmi.core.score.raw'], min = progress.scorm['cmi.core.score.min'], max = progress.scorm['cmi.core.score.max'];
-        const pct = scorePercent(raw, min, max) ?? interactionScore(item);
+        const answers = interactionScore(item);
+        const pct = scorePercent(raw, min, max) ?? answers;
+
+        if (answers !== null) {
+            progress.sections.quiz = { ...(progress.sections.quiz || {}), visited: true };
+        }
         const status = String(progress.scorm['cmi.core.lesson_status'] || '').toLowerCase();
         const finished = ['passed', 'failed', 'completed'].includes(status);
 
-        if (pct !== null && (!progress.quiz || finished)) {
+        const atResults = location.includes(RESULTS_SLIDE) || progress.lastSlide === RESULTS_SLIDE;
+
+        if (pct !== null && (atResults || finished)) {
             const passed = status === 'passed' || pct >= PASSING_SCORE;
             progress.quiz = { score: pct, passed, at: Date.now(), source: raw ? 'storyline' : 'interactions' };
 
@@ -186,14 +195,14 @@ export function createStorylineTracker({ sections, frames, onChange }) {
 
             const prior = progress.sections.video || {}, sameVideo = prior.source === 'storyline-main-video';
             const seconds = Math.max(sameVideo ? (Number(prior.seconds) || 0) : 0, Math.floor(watched));
-            const completed = (sameVideo && Boolean(prior.completed)) || (duration > 0 && watched >= duration * .9);
+            const completed = (sameVideo && Boolean(prior.completed)) || (duration > 0 && seconds >= duration * .9);
 
             progress.sections.video = {
                 ...prior,
                 source: 'storyline-main-video',
                 seconds,
                 duration: Math.round(duration),
-                percent: duration ? Math.min(100, Math.round(watched / duration * 100)) : 0,
+                percent: duration ? Math.min(100, Math.round(seconds / duration * 100)) : (Number(prior.percent) || 0),
                 completed,
                 passedAt: completed ? (sameVideo && prior.passedAt || Date.now()) : null,
             };
@@ -221,6 +230,7 @@ export function createStorylineTracker({ sections, frames, onChange }) {
 
             if (slideText.includes('Այս բաժնում տեղադրված են դասին առնչվող ուսումնական նյութերը')) recordSlide(item, '6m4h0Gy3mUh');
             else if (slideText.includes('Գրականություն') && LITERATURE_REFERENCES.some(reference => slideText.includes(reference))) recordSlide(item, '6eZpibFOcqO');
+            else if (/Հարց\s*\d+/.test(slideText) && slideText.includes('Պատասխանել')) recordSlide(item, '6aymNm6ZUBv');
 
             win.document.querySelectorAll('iframe').forEach(frame => {
                 try {

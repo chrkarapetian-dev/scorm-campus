@@ -205,7 +205,7 @@ function sectionRow(section, progress) {
     const complete = Boolean(s.completed), visited = Boolean(s.visited || complete), active = progress.activeSection === section.id;
     const score = isQuiz && progress.quiz ? progress.quiz.score : null;
 
-    const percent = isVideo ? Number(s.percent) || 0 : isQuiz ? (score ?? 0) : (complete ? 100 : visited ? 25 : 0);
+    const percent = isVideo ? Number(s.percent) || 0 : isQuiz ? (score ?? 0) : (complete ? 100 : 0);
 
     let label = 'Չի սկսվել';
     if (complete) label = 'Ավարտված';
@@ -216,8 +216,11 @@ function sectionRow(section, progress) {
 
     let detail = 'Բաժինը կհայտնվի այստեղ, երբ բացեք այն Storyline դասընթացում';
     if (isQuiz && progress.quiz) detail = `Փորձի արդյունք՝ ${progress.quiz.score}% · անցողիկ՝ 70%`;
-    else if (isVideo && s.seconds) detail = `Դիտվել է ${s.seconds < 60 ? `${s.seconds} վայրկյան` : minutes(s.seconds)}${s.duration >= 60 ? `՝ ${Math.round(s.seconds / 60)} / ${Math.round(s.duration / 60)} րոպե` : ''}`;
-    else if (complete) detail = 'Բաժինն ուսումնասիրվել է Articulate Storyline-ում';
+    else if (isVideo && s.seconds) {
+        const time = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+        detail = `Դիտվել է ${time(s.seconds)}${s.duration ? ` / ${time(s.duration)}` : ''}`;
+    }
+    else if (complete) detail = isVideo ? 'Դիտվել է տեսանյութի առնվազն 90%-ը' : 'Բաժինը բացվել է, ապա՝ փակվել';
     else if (active) detail = 'Դուք բացել եք այս բաժինը Articulate Storyline-ում';
     else if (visited) detail = 'Այս բաժինը բացվել է Articulate Storyline-ում';
 
@@ -239,8 +242,8 @@ function renderAnalytics() {
         $('progress-open-course').onclick = () => showView('home');
     }
 
-    let courseStatus = 'Ընթացքի մեջ';
-    if (progress.quiz?.passed || status === 'passed') courseStatus = 'Հանձնված է';
+    let courseStatus = status ? 'Ընթացքի մեջ' : 'Չի սկսվել';
+    if (status === 'passed') courseStatus = 'Հանձնված է';
     else if (status === 'failed') courseStatus = 'Չի հանձնվել';
     else if (status === 'completed') courseStatus = 'Ավարտված՝ ըստ Storyline';
 
@@ -502,10 +505,12 @@ $('close-player').addEventListener('click', closePlayer);
 $('reset-progress').addEventListener('click', () => {
     if (!confirm('Վերակայե՞լ այս դասընթացի պահպանված առաջընթացը։')) return;
 
-    state = blankState();
-    saveState();
+    if (!activeCourse) return;
 
-    if (activeCourse) tracker.clear(activeCourse);
+    closePlayer();
+    $('featured-scorm-frame').src = 'about:blank';
+    loadedFeaturedId = null;
+    tracker.clear(activeCourse);
 
     renderAnalytics();
     toast('Առաջընթացը վերակայվել է։');
