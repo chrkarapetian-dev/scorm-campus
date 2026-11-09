@@ -53,6 +53,7 @@ services:
       UPLOAD_TOKEN: ${UPLOAD_TOKEN:?Set UPLOAD_TOKEN in .env.prod}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-6-luna}
+      OPENAI_REASONING_EFFORT: ${OPENAI_REASONING_EFFORT:-medium}
       OPENAI_TIMEOUT: ${OPENAI_TIMEOUT:-45}
       AI_QUESTION_LIMIT: ${AI_QUESTION_LIMIT:-10}
       AI_QUESTION_MAX_LENGTH: ${AI_QUESTION_MAX_LENGTH:-100}
@@ -82,6 +83,9 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.prod}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env.prod}
     command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    ports:
+      # Reachable through an SSH tunnel, never directly from the internet.
+      - "127.0.0.1:${PROD_DB_PORT:-3306}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:

@@ -40,6 +40,7 @@ class OpenAiResponses
                 ->timeout(config('services.openai.timeout'))
                 ->post(self::ENDPOINT, [
                     'model' => config('services.openai.model'),
+                    'reasoning' => ['effort' => config('services.openai.reasoning_effort')],
                     'instructions' => $instructions,
                     'input' => json_encode($input, JSON_UNESCAPED_UNICODE),
                     'store' => false,

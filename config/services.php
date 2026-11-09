@@ -38,6 +38,7 @@ return [
     'openai' => [
         'key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'gpt-6-luna'),
+        'reasoning_effort' => env('OPENAI_REASONING_EFFORT', 'medium'),
         'timeout' => (int) env('OPENAI_TIMEOUT', 45),
         'question_limit' => (int) env('AI_QUESTION_LIMIT', 10),
         'question_max_length' => (int) env('AI_QUESTION_MAX_LENGTH', 100),

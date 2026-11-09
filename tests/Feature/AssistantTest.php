@@ -71,7 +71,11 @@ class AssistantTest extends TestCase
 
     public function test_model_scores_are_clamped_to_the_rubric_and_resummed(): void
     {
-        config(['services.openai.key' => 'sk-test']);
+        config([
+            'services.openai.key' => 'sk-test',
+            'services.openai.model' => 'gpt-6-luna',
+            'services.openai.reasoning_effort' => 'medium',
+        ]);
         $this->fakeOpenAi([
             'total_score_awarded' => 500,
             'max_total_score' => 500,
@@ -85,6 +89,14 @@ class AssistantTest extends TestCase
         ]);
 
         $result = app(CourseAssistant::class)->evaluate(self::LONG_ANSWER);
+        Http::assertSent(fn ($request) => $request->url() === 'https://api.openai.com/v1/responses'
+            && $request['model'] === 'gpt-6-luna'
+            && $request['reasoning']['effort'] === 'medium'
+            && $request['text']['format']['strict'] === true
+            && $request['max_output_tokens'] === 16000
+            && ! isset($request['temperature'])
+            && ! isset($request['top_p'])
+            && ! isset($request['max_tokens']));
         $this->assertSame(40.0, $result['total_score_awarded']);
         $this->assertSame(100, $result['max_total_score']);
         $this->assertSame(30, $result['criterion_breakdown'][0]['points_earned']);

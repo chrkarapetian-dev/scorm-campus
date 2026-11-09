@@ -35,7 +35,7 @@ curl -H "X-Upload-Token: $UPLOAD_TOKEN" -F package=@course.zip -F title="Կայ�
 
 ## AI հնարավորությունները
 
-`.env`-ում լրացրեք `OPENAI_API_KEY` (և ըստ ցանկության `OPENAI_MODEL`, լռելյայն՝ `gpt-6-luna`), ապա գործարկեք `make up`։ Բանալին մնում է սերվերում։ Սովորողի հարցերն ու պատասխաններն այդ դեպքում ուղարկվում են OpenAI API, և օգտագործումը կարող է վճարովի լինել։
+`.env`-ում լրացրեք `OPENAI_API_KEY` (`OPENAI_MODEL=gpt-6-luna`, `OPENAI_REASONING_EFFORT=medium`), ապա գործարկեք `make up`։ Օգտագործվում են Responses API-ն և կառուցվածքային JSON պատասխաններ։ Բանալին մնում է սերվերում։ Սովորողի հարցերն ու պատասխաններն այդ դեպքում ուղարկվում են OpenAI API, և օգտագործումը կարող է վճարովի լինել։
 
 Առանց բանալու օգնականը և առաջադրանքների գնահատումը հասանելի չեն։ API-ի սխալի դեպքում հարցը վերադարձվում է սովորողին, իսկ առաջադրանքին գնահատական չի նշանակվում․ հնարավոր է կրկնել փորձը։
 
@@ -93,7 +93,7 @@ Local Docker uses `compose.yaml`, `.env`, and the existing `scorm-campus` projec
 
 The deployed server, domain transition and backup procedures are documented in [docs/production.md](docs/production.md).
 
-Use a supported Linux VPS with Docker Engine, the Compose plugin (v2, with `--wait`), Git, Make, host Nginx and Certbot's Nginx plugin. Allow inbound ports 80 and 443 in the VPS firewall and provider firewall; restrict SSH to trusted users. Docker's MySQL port is not published. The production web port is bound to loopback only, so host Nginx is the public entry point. Local and production use different Compose project names, networks, images and named volumes. Production uses the same multi-stage Dockerfile with production-only Compose settings and entrypoint.
+Use a supported Linux VPS with Docker Engine, the Compose plugin (v2, with `--wait`), Git, Make, host Nginx and Certbot's Nginx plugin. Allow inbound ports 80 and 443 in the VPS firewall and provider firewall; restrict SSH to trusted users. Docker's MySQL port is bound only to `127.0.0.1:3306` for SSH-tunneled database clients. The production web port is bound to loopback only, so host Nginx is the public entry point. Local and production use different Compose project names, networks, images and named volumes. Production uses the same multi-stage Dockerfile with production-only Compose settings and entrypoint.
 
 Initial server steps (run on the VPS):
 

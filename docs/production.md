@@ -2,7 +2,7 @@
 
 The application checkout is `/var/www/scorm-campus` on `68.168.30.49`.
 The initial public address is `http://68.168.30.49:8080` (also available on port 80).
-Host Nginx forwards to Docker on `127.0.0.1:8081`. MySQL has no published port.
+Host Nginx forwards to Docker on `127.0.0.1:8081`. MySQL listens only on `127.0.0.1:3306` on the server for SSH-tunneled clients.
 The firewall permits SSH, HTTP, HTTPS and the initial port 8080.
 
 Initial verification checked all 1,387 bundled files (6,725,360,199 bytes) against
@@ -23,6 +23,26 @@ Course packages live in `/srv/scorm-campus/courses`, mounted read-only into both
 containers. Course texts in `storage/course_texts` are baked into the application image.
 Texts for courses 1, 2, 7 and 11 are missing from the source project. Their course
 packages remain playable, but their AI assistants need those texts.
+
+## PhpStorm database connection
+
+The production data source is `scorm_campus@PROD`.
+In **General**, use host `127.0.0.1`, port `3306`, and database `scorm_campus`.
+In **SSH/SSL**, enable the SSH tunnel with host `68.168.30.49`, SSH port `22`,
+and the existing SSH credentials. Leave **Local port** empty (`<Dynamic>`).
+That field is the temporary port on your computer; setting it to `22` causes
+a permission error. The SSH server port remains `22`.
+
+Use database credentials from `.env.prod`: `DB_USERNAME` / `DB_PASSWORD` for
+the application user, or `root` / `DB_ROOT_PASSWORD` for administration. These
+are separate from the SSH login. The database port is bound only to loopback;
+do not open it in the firewall. Local development continues to use port `3307`.
+
+Both environments use `OPENAI_MODEL=gpt-6-luna` and
+`OPENAI_REASONING_EFFORT=medium`. The client uses the Responses API with strict
+JSON schemas and a 16,000-token output budget that includes reasoning tokens.
+After changing API keys, run `make up` locally or `make prod-up` on the server
+to recreate containers and refresh cached configuration.
 
 ## Deploy an update
 
