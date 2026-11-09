@@ -91,6 +91,8 @@ Local Docker uses `compose.yaml`, `.env`, and the existing `scorm-campus` projec
 
 ## Production VPS
 
+The deployed server, domain transition and backup procedures are documented in [docs/production.md](docs/production.md).
+
 Use a supported Linux VPS with Docker Engine, the Compose plugin (v2, with `--wait`), Git, Make, host Nginx and Certbot's Nginx plugin. Allow inbound ports 80 and 443 in the VPS firewall and provider firewall; restrict SSH to trusted users. Docker's MySQL port is not published. The production web port is bound to loopback only, so host Nginx is the public entry point. Local and production use different Compose project names, networks, images and named volumes. Production uses the same multi-stage Dockerfile with production-only Compose settings and entrypoint.
 
 Initial server steps (run on the VPS):
@@ -101,6 +103,8 @@ Initial server steps (run on the VPS):
 4. Point your domain's DNS A/AAAA records to the VPS. Only publish an AAAA record if IPv6 works. Copy `docker/production/nginx-host.conf.example` to `/etc/nginx/sites-available/scorm-campus`, replace `example.com` with the real hostname, and enable it under `sites-enabled`. Match its upstream port to `PROD_HTTP_PORT`. Remove any conflicting default site, run `sudo nginx -t`, then reload Nginx.
 5. Run `make prod-up`. This builds images, waits for MySQL, stops web traffic, runs pending migrations, re-runs the existing idempotent seeders, warms missing or stale course chunks, starts containers and checks Laravel's `/up` route. The seeders update bundled catalogue and learning content from the repository; do not edit those seeded records manually. A failed initialization leaves the web container stopped; inspect the error, restore from a backup if necessary, and rerun. Deployment is not zero downtime and schema migrations are not automatically rolled back.
 6. After DNS resolves and HTTP on port 80 is reachable, run `sudo certbot --nginx -d your-domain` and select HTTPS redirection. Confirm certificate renewal with `sudo certbot renew --dry-run`. The host proxy must overwrite forwarded headers as in the example: Laravel trusts its internal proxy chain, and the Docker web port must remain loopback-only. Secure cookies require HTTPS. Verify login, course playback and upload behavior over the real HTTPS domain.
+
+For an initial launch using `http://SERVER_IP:PORT`, set `APP_URL` to that exact address and `SESSION_SECURE_COOKIE=false` in `.env.prod`. Configure host Nginx to listen on the public port and proxy to the loopback-only `PROD_HTTP_PORT`; preserve the incoming port with `proxy_set_header Host $http_host`. When switching to `https://zimast.am`, set `APP_URL=https://zimast.am` and `SESSION_SECURE_COOKIE=true`, obtain the certificate, and run `make prod-up` again. Learner progress uses browser localStorage and does not automatically move from the IP address to the domain.
 
 For later deployments, from the checkout on the VPS:
 

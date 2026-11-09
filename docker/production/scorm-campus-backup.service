@@ -1,0 +1,12 @@
+[Unit]
+Description=Encrypted SCORM Campus database and upload backup
+Requires=docker.service
+After=docker.service
+ConditionPathExists=/var/www/scorm-campus/.env.prod
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/www/scorm-campus
+ExecStart=/usr/bin/bash /var/www/scorm-campus/docker/production/backup.sh
+UMask=0077
+Nice=10
