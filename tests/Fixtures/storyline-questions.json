@@ -1,0 +1,411 @@
+{
+  "scenes": [
+    {
+      "lmsId": "Scene5",
+      "slides": [
+        {
+          "id": "6J9kGpVVlCi",
+          "lmsId": "Slide2",
+          "title": "Թվարկվածներից ո՞րն էր Երկրորդ համաշխարհային պատերազմից հետո տնտեսության բուռն զարգացման և համամոլորակային էկոլոգիական ճգնաժամի միջև եղած տրամաբանական կապը: ",
+          "interactions": [
+            {
+              "id": "6NO8pzxHovi",
+              "lmsId": "MultiChoice",
+              "lmstext": "Թվարկվածներից ո՞րն էր Երկրորդ համաշխարհային պատերազմից հետո տնտեսության բուռն զարգացման և համամոլորակային էկոլոգիական ճգնաժամի միջև եղած տրամաբանական կապը: ",
+              "type": "multiplechoice",
+              "choices": [
+                {
+                  "kind": "choice",
+                  "id": "choice_6dJwnrdCXyb",
+                  "lmstext": "Ա․ Արտադրության մեջ որակական թռիչքը հանգեցրեց բնական ռեսուրսների ավելցուկի ստեղծմանը, ինչը խախտեց էկոհամակարգերի հավասարակշռությունը:"
+                },
+                {
+                  "kind": "choice",
+                  "id": "choice_60h9unlMbCG",
+                  "lmstext": "Բ․ Արտադրության հետ կապված քանակական փոփոխությունները հանգեցրին կենսոլորտի որակական փոփոխություններին, ինչն էլ ստեղծեց ճգնաժամի վտանգ: "
+                },
+                {
+                  "kind": "choice",
+                  "id": "choice_6RZ5uHwkVjH",
+                  "lmstext": "Գ․ Զարգացող երկրների արդյունաբերականացումը հանգեցրեց Հյուսիսի և Հարավի տնտեսական հավասարեցմանը, ինչը մեծացրեց ճնշումը բնության վրա:"
+                },
+                {
+                  "kind": "choice",
+                  "id": "choice_63Bm8bhsAe9",
+                  "lmstext": "Դ․ Համաշխարհային տնտեսության քանակական անկումը ստիպեց պետություններին անցնել էկոլոգիապես անվտանգ տեխնոլոգիաների:"
+                }
+              ],
+              "answers": [
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_6dJwnrdCXyb",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "correct",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_60h9unlMbCG",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_6RZ5uHwkVjH",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_63Bm8bhsAe9",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "other"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "6mveFjmrsi4",
+          "lmsId": "Slide6",
+          "title": "Ըստ «Մեր ընդհանուր ապագան» զեկույցի տրամաբանության՝ ինչպե՞ս են բաշխված գլոբալ բնապահպանական խնդիրների պատճառները աշխարհի Հյուսիսի և Հարավի միջև: ",
+          "interactions": [
+            {
+              "id": "5a5yi3eKDOV",
+              "lmsId": "MultiChoice",
+              "lmstext": "Ըստ «Մեր ընդհանուր ապագան» զեկույցի տրամաբանության՝ ինչպե՞ս են բաշխված գլոբալ բնապահպանական խնդիրների պատճառները աշխարհի Հյուսիսի և Հարավի միջև: ",
+              "type": "multiplechoice",
+              "choices": [
+                {
+                  "kind": "choice",
+                  "id": "choice_6TKIarz2ZNZ",
+                  "lmstext": "Ա․ Խնդիրները պայմանավորված են բացառապես Հարավի զարգացող երկրների արդյունաբերականացմամբ:"
+                },
+                {
+                  "kind": "choice",
+                  "id": "choice_5ceBT6KQQUv",
+                  "lmstext": "Բ․ Դրանք արդյունք են Հարավի հսկայական աղքատության և Հյուսիսում սպառման ու արտադրության ոչ կայուն ձևերի: "
+                },
+                {
+                  "kind": "choice",
+                  "id": "choice_6DHu5WqFelK",
+                  "lmstext": "Գ․ Դրանք բխում են միայն Հյուսիսի զարգացած երկրների բնակչության արագ աճից:"
+                },
+                {
+                  "kind": "choice",
+                  "id": "choice_6BMxbf79GEh",
+                  "lmstext": "Դ․ Հյուսիսն ու Հարավը չունեն որևէ ազդեցություն, քանի որ խնդիրները բնական կլիմայական ցիկլերի հետևանք են:"
+                }
+              ],
+              "answers": [
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_6TKIarz2ZNZ",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "correct",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_5ceBT6KQQUv",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_6DHu5WqFelK",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_6BMxbf79GEh",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "other"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "5c20XU3s09U",
+          "lmsId": "Slide10",
+          "title": "Յոհանեսբուրգի գագաթաժողովում (Ռիո+10) ամփոփված արդյունքների համաձայն՝ կայուն զարգացման սկզբունքների ներդրումը ո՞ր ոլորտում է ընթացել ամենադանդաղ տեմպերով և ինչո՞ւ: ",
+          "interactions": [
+            {
+              "id": "6Jtdvb071RK",
+              "lmsId": "MultiChoice",
+              "lmstext": "Յոհանեսբուրգի գագաթաժողովում (Ռիո+10) ամփոփված արդյունքների համաձայն՝ կայուն զարգացման սկզբունքների ներդրումը ո՞ր ոլորտում է ընթացել ամենադանդաղ տեմպերով և ինչո՞ւ: ",
+              "type": "multiplechoice",
+              "choices": [
+                {
+                  "kind": "choice",
+                  "id": "choice_6WxoXj352xs",
+                  "lmstext": "Ա․ Գիտության և կրթության ոլորտում, քանի որ երկրների միայն 25%-ն է ընդունել այն: "
+                },
+                {
+                  "kind": "choice",
+                  "id": "choice_5vIlVbs21Wa",
+                  "lmstext": "Բ․ Օրենսդրության և սահմանադրական նորմերի մակարդակում, քանի որ կառավարությունները հրաժարվել են խորհուրդներ ստեղծել: \n"
+                },
+                {
+                  "kind": "choice",
+                  "id": "choice_5xznK4dQsP4",
+                  "lmstext": "Գ․ Սեկտորալ քաղաքականության (արտադրության և սպառման կայուն մոդելներ) մեջ, քանի որ այն բնորոշ է ճյուղերի միայն 25-40%-ին, այն էլ հիմնականում զարգացած երկրներում: "
+                },
+                {
+                  "kind": "choice",
+                  "id": "choice_5jA6UNDxe2W",
+                  "lmstext": "Դ․ Օզոնային շերտի պահպանության ոլորտում, քանի որ արտանետումները կտրուկ աճել են: "
+                }
+              ],
+              "answers": [
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_6WxoXj352xs",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_5vIlVbs21Wa",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "correct",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_5xznK4dQsP4",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_5jA6UNDxe2W",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "other"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "6nDfSwRSkNM",
+          "lmsId": "Slide11",
+          "title": "Ինչպիսի՞ տրամաբանական և ժամանակագրական էվոլյուցիա ապրեց 1992 թ. ընդունված «21-րդ դարի օրակարգ» փաստաթուղթը ՄԱԿ-ի հետագա գործընթացներում: ",
+          "interactions": [
+            {
+              "id": "6mJdgUnDhKL",
+              "lmsId": "MultiChoice",
+              "lmstext": "Ինչպիսի՞ տրամաբանական և ժամանակագրական էվոլյուցիա ապրեց 1992 թ. ընդունված «21-րդ դարի օրակարգ» փաստաթուղթը ՄԱԿ-ի հետագա գործընթացներում: ",
+              "type": "multiplechoice",
+              "choices": [
+                {
+                  "kind": "choice",
+                  "id": "choice_6qZdHBO2Z3l",
+                  "lmstext": "Ա․ Այն ճանաչվեց սխալ և փոխարինվեց բացառապես կլիմայի փոփոխության կոնվենցիայով: "
+                },
+                {
+                  "kind": "choice",
+                  "id": "choice_66D5JEdLV3f",
+                  "lmstext": "Բ․ Դրա սկզբնական նպատակները զարգացան և վերածվեցին ավելի լայն շրջանակի, որը կոչվեց «Օրակարգ 2030» կամ Կայուն զարգացման նպատակներ (ԿԶՆ՝ 17 նպատակ)՝ ընդունված 2015 թվականին:"
+                },
+                {
+                  "kind": "choice",
+                  "id": "choice_6cddWsY3uU9",
+                  "lmstext": "Գ․ Այն վերածվեց իրավաբանորեն պարտավորեցնող խիստ պատժամիջոցների համակարգի բոլոր ստորագրող երկրների համար: "
+                },
+                {
+                  "kind": "choice",
+                  "id": "choice_5iAWQjpkww0",
+                  "lmstext": "Դ․ Այն նեղացվեց և սահմանափակվեց միայն քաղաքների էներգետիկայի հարցերով: "
+                }
+              ],
+              "answers": [
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_6qZdHBO2Z3l",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "correct",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_66D5JEdLV3f",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_6cddWsY3uU9",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "equals",
+                        "choiceid": "choices.choice_5iAWQjpkww0",
+                        "ignorecase": false
+                      }
+                    ]
+                  }
+                },
+                {
+                  "status": "incorrect",
+                  "evaluate": {
+                    "statements": [
+                      {
+                        "kind": "other"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "quizzes": [
+    {
+      "sliderefs": [
+        {
+          "kind": "slideref",
+          "id": "_player.6aymNm6ZUBv.6J9kGpVVlCi"
+        },
+        {
+          "kind": "slideref",
+          "id": "_player.6aymNm6ZUBv.6mveFjmrsi4"
+        },
+        {
+          "kind": "slideref",
+          "id": "_player.6aymNm6ZUBv.5c20XU3s09U"
+        },
+        {
+          "kind": "slideref",
+          "id": "_player.6aymNm6ZUBv.6nDfSwRSkNM"
+        }
+      ]
+    }
+  ]
+}

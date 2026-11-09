@@ -1,6 +1,14 @@
 import { createStorylineTracker } from './storyline.js';
+import { ProgressStore } from './progress.js';
+
+async function main() {
 
 const { courses, sections, assignmentMessages: assignmentText } = window.usum;
+const progressStore = new ProgressStore(() => {
+    if (!document.getElementById('view-progress').hidden) renderAnalytics();
+    if (progressStore.error) toast(progressStore.error.message);
+});
+await progressStore.load(courses);
 
 const STORE = 'usum-topic8-progress-v1';
 const FLASH_KEY = 'usum-flash';
@@ -61,6 +69,7 @@ let toastTimer;
 
 const tracker = createStorylineTracker({
     sections,
+    store: progressStore,
     frames: [$('featured-scorm-frame'), $('scorm-frame')],
     onChange: () => {
         if (!$('view-progress').hidden) renderAnalytics();
@@ -78,17 +87,7 @@ function toast(message) {
 // ---- SCORM -----------------------------------------------------------------
 
 function setScormApi(item) {
-    const prefix = `usum-scorm-${item.id}-`;
-    const get = key => localStorage.getItem(prefix + key) || '';
-    const set = (key, value) => {
-        localStorage.setItem(prefix + key, String(value));
-        tracker.sync(item);
-
-        return 'true';
-    };
-
-    window.API = { LMSInitialize: () => 'true', LMSFinish: () => 'true', LMSCommit: () => 'true', LMSGetValue: get, LMSSetValue: set, LMSGetLastError: () => '0', LMSGetErrorString: () => 'No error', LMSGetDiagnostic: () => '' };
-    window.API_1484_11 = { Initialize: () => 'true', Terminate: () => 'true', Commit: () => 'true', GetValue: get, SetValue: set, GetLastError: () => '0', GetErrorString: () => 'No error', GetDiagnostic: () => '' };
+    progressStore.install(item);
 }
 
 // Storyline asks whether to resume a saved session; answer yes on the learner's behalf.
@@ -123,7 +122,7 @@ window.addEventListener('message', event => {
 
     const frames = [$('featured-scorm-frame'), $('scorm-frame')];
 
-    if (frames.some(frame => frame.contentWindow === event.source)) tracker.recordSlide(item, data.slideId);
+    if (frames.some(frame => frame.dataset.courseId === item.id && frame.contentWindow === event.source)) tracker.recordSlide(item, data.slideId);
 });
 
 function renderFeaturedCourse(item) {
@@ -151,6 +150,7 @@ function renderFeaturedCourse(item) {
     if (loadedFeaturedId !== item.id) {
         const frame = $('featured-scorm-frame');
         frame.addEventListener('load', () => autoResume(frame), { once: true });
+        frame.dataset.courseId = item.id;
         frame.src = item.url;
         loadedFeaturedId = item.id;
     }
@@ -162,9 +162,12 @@ function renderFeaturedCourse(item) {
 
 function openPlayer(item) {
     const frame = $('scorm-frame'), player = $('player');
+    $('featured-scorm-frame').src = 'about:blank';
+    loadedFeaturedId = null;
 
     setScormApi(item);
     $('player-title').textContent = ` ${item.title}`;
+    frame.dataset.courseId = item.id;
     frame.src = item.url;
     tracker.watch(item);
     frame.onload = () => {
@@ -183,13 +186,15 @@ function openPlayer(item) {
     player.setAttribute('aria-hidden', 'false');
 }
 
-function closePlayer() {
+function closePlayer(resume = true) {
     const player = $('player');
+    const wasOpen = 'open' in player.dataset;
 
     $('scorm-frame').src = 'about:blank';
     delete player.dataset.open;
     player.setAttribute('aria-hidden', 'true');
     $('player-title').textContent = '';
+    if (wasOpen && resume) renderFeaturedCourse(activeCourse);
 }
 
 // ---- Views -----------------------------------------------------------------
@@ -207,7 +212,7 @@ function showView(name) {
 
     $('crumb-current').textContent = VIEW_LABELS[name];
 
-    if (name === 'progress') renderAnalytics();
+    if (name === 'progress') { renderAnalytics(); progressStore.refresh(activeCourse).catch(error => toast(error.message)); }
     if (name === 'home') renderFeaturedCourse(activeCourse);
 
     if (name === 'home') $('view-home').scrollIntoView();
@@ -218,19 +223,21 @@ function sectionRow(section, progress) {
     const s = progress.sections[section.id] || {};
     const isQuiz = section.id === 'quiz', isVideo = section.id === 'video';
     const complete = Boolean(s.completed), visited = Boolean(s.visited || complete), active = progress.activeSection === section.id;
-    const score = isQuiz && progress.quiz ? progress.quiz.score : null;
+    const score = isQuiz ? (progress.quiz?.score ?? progress.quizScore?.score ?? null) : null;
 
     const percent = isVideo ? Number(s.percent) || 0 : isQuiz ? (score ?? 0) : (complete ? 100 : 0);
 
     let label = 'Չի սկսվել';
     if (complete) label = 'Ավարտված';
     else if (isQuiz && progress.quiz) label = 'Չի անցել';
+    else if (isQuiz && progress.quizScore) label = 'Ընթացքի մեջ';
     else if (active) label = 'Ընթացքի մեջ';
     else if (visited) label = 'Բացվել է';
     else if (isVideo && s.seconds) label = 'Ընթացքի մեջ';
 
     let detail = 'Բաժինը կհայտնվի այստեղ, երբ բացեք այն Storyline դասընթացում';
     if (isQuiz && progress.quiz) detail = `Փորձի արդյունք՝ ${progress.quiz.score}% · անցողիկ՝ 70%`;
+    else if (isQuiz && progress.quizScore) detail = `Ընթացիկ արդյունք՝ ${progress.quizScore.score}% · ինքնաստուգումը դեռ չի ավարտվել`;
     else if (isVideo && s.seconds) {
         const time = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
         detail = `Դիտվել է ${time(s.seconds)}${s.duration ? ` / ${time(s.duration)}` : ''}`;
@@ -246,9 +253,9 @@ function sectionRow(section, progress) {
 
 function renderAnalytics() {
     const item = activeCourse, progress = tracker.read(item);
-    const done = sections.filter(section => progress.sections[section.id]?.completed).length;
-    const score = progress.quiz?.score;
-    const status = String(progress.scorm['cmi.core.lesson_status'] || '').toLowerCase();
+    const done = progress.completedSections;
+    const score = progress.quiz?.score ?? progress.quizScore?.score;
+    const status = progress.status;
 
     $('progress-course-access').hidden = !item;
 
@@ -257,21 +264,49 @@ function renderAnalytics() {
         $('progress-open-course').onclick = () => showView('home');
     }
 
-    let courseStatus = status ? 'Ընթացքի մեջ' : 'Չի սկսվել';
+    let courseStatus = status && status !== 'not_started' ? 'Ընթացքի մեջ' : 'Չի սկսվել';
     if (status === 'passed') courseStatus = 'Հանձնված է';
     else if (status === 'failed') courseStatus = 'Չի հանձնվել';
     else if (status === 'completed') courseStatus = 'Ավարտված՝ ըստ Storyline';
 
     const totalTime = progress.scorm['cmi.core.total_time'];
 
-    $('stat-sections').textContent = `${done}/${sections.length}`;
+    $('stat-sections').textContent = `${done}/${progress.totalSections}`;
     $('stat-sections-note').textContent = item?.title || 'SCORM դասընթաց';
     $('stat-quiz').textContent = score === undefined || score === null ? '—' : `${score}%`;
     $('stat-quiz-note').textContent = progress.quiz
         ? (progress.quiz.passed ? '70% անցողիկ միավորը հաղթահարված է' : '70% անցողիկ միավորը դեռ չի հաղթահարվել')
+        : progress.quizScore ? 'Ընթացիկ արդյունք · ինքնաստուգումը դեռ չի ավարտվել'
         : 'Արդյունքը կերևա Storyline-ի ինքնաստուգումից հետո';
     $('stat-status').textContent = courseStatus;
-    $('stat-status-note').textContent = totalTime ? `Ուսումնառության ժամանակ՝ ${totalTime}` : 'Առաջընթացը պահվում է այս դիտարկչում';
+    $('stat-status-note').textContent = totalTime ? `Ուսումնառության ժամանակ՝ ${totalTime}` : 'Առաջընթացը պահպանվում է ձեր հաշվում';
+
+    $('progress-save-status').textContent = progressStore.error?.message || '';
+    const answerList = $('progress-answers');
+    answerList.replaceChildren();
+    const quizProgress = progress.quizProgress;
+    $('progress-answer-count').textContent = quizProgress?.total !== null && quizProgress?.total !== undefined
+        ? `Պատասխանված է ${quizProgress.answered}/${quizProgress.total}`
+        : '';
+    for (const answer of progress.answers) {
+        const row = fromTemplate('tpl-progress-answer');
+        row.querySelector('[data-number]').textContent = `Հարց ${answer.number}`;
+        const question = row.querySelector('[data-question]');
+        question.textContent = answer.description || '';
+        question.hidden = !answer.description;
+        row.querySelector('[data-selected]').textContent = answer.selectionUnavailable
+            ? 'Պատասխանը պահպանված է, սակայն դրա տեքստը հնարավոր չէ վերականգնել։'
+            : answer.selected ?? 'Պատասխան չի տրվել';
+        const result = row.querySelector('[data-result]');
+        result.textContent = answer.result === 'correct' ? 'Ճիշտ պատասխան'
+            : answer.result === 'incorrect' ? 'Սխալ պատասխան'
+            : answer.answered ? 'Պատասխանը պահպանված է' : 'Չի պատասխանվել';
+        result.dataset.state = answer.result || '';
+        row.querySelector('[data-correct-row]').hidden = !answer.answered;
+        row.querySelector('[data-correct]').textContent = answer.correct?.join(' · ') || 'Դասընթացի տվյալներում նշված չէ։';
+        answerList.append(row);
+    }
+    $('progress-answers-empty').hidden = progress.answers.length > 0;
 
     for (const section of sections) {
         const row = document.querySelector(`[data-progress-row="${section.id}"]`);
@@ -625,21 +660,22 @@ $('course-search-form').addEventListener('submit', event => {
 document.querySelectorAll('[data-view]').forEach(link => link.addEventListener('click', () => showView(link.dataset.view)));
 
 document.querySelectorAll('[data-open-course]').forEach(button => button.addEventListener('click', () => {
+    closePlayer(false);
     activeCourse = courses.find(course => course.id === button.dataset.openCourse) || courses[0];
     showView('home');
 }));
 
 $('close-player').addEventListener('click', closePlayer);
 
-$('reset-progress').addEventListener('click', () => {
+$('reset-progress').addEventListener('click', async () => {
     if (!confirm('Վերակայե՞լ այս դասընթացի պահպանված առաջընթացը։')) return;
 
     if (!activeCourse) return;
 
-    closePlayer();
+    closePlayer(false);
     $('featured-scorm-frame').src = 'about:blank';
     loadedFeaturedId = null;
-    tracker.clear(activeCourse);
+    try { await tracker.clear(activeCourse); } catch (error) { toast(error.message); return; }
 
     renderAnalytics();
     toast('Առաջընթացը վերակայվել է։');
@@ -658,8 +694,9 @@ const params = new URLSearchParams(location.search);
 // ?recover=1 clears saved Storyline positions when a package fails to resume.
 if (params.get('recover') === '1') {
     for (const course of courses) {
-        for (const key of ['cmi.suspend_data', 'cmi.core.lesson_location']) localStorage.removeItem(`usum-scorm-${course.id}-${key}`);
+        for (const key of ['cmi.suspend_data', 'cmi.core.lesson_location', 'cmi.location']) progressStore.set(course, key, '');
     }
+    await progressStore.flush();
 
     const url = new URL(location.href);
     url.searchParams.delete('recover');
@@ -676,3 +713,12 @@ if (flash) {
     sessionStorage.removeItem(FLASH_KEY);
     toast(flash);
 }
+
+}
+main().catch(error => {
+    const status = document.getElementById('progress-save-status');
+    status.textContent = error.message || 'Առաջընթացը բեռնել չհաջողվեց։ Վերբեռնեք էջը։';
+    const toast = document.getElementById('toast');
+    toast.textContent = status.textContent;
+    toast.dataset.show = '';
+});

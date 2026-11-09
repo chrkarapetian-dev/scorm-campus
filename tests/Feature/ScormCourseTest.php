@@ -228,7 +228,8 @@ class ScormCourseTest extends TestCase
             ->assertOk()
             ->assertHeader('X-Content-Type-Options', 'nosniff')
             ->assertSee("/content/{$id}/story%20files/index_lms.html", false)
-            ->assertSee("usum-scorm-{$id}-", false)
+            ->assertSee('window.usumCourse', false)
+            ->assertDontSee('localStorage', false)
             ->assertDontSee('<b>Դաս</b>', false);
 
         $this->get('/course/'.str_repeat('a', 16))->assertNotFound()->assertSee('Դասընթացը չի գտնվել։');

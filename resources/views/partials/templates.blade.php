@@ -37,3 +37,15 @@
         <div data-slot="result"></div>
     </details>
 </template>
+
+<template id="tpl-progress-answer">
+    <article class="min-w-0 bg-[#171d19] border border-[#29342c] rounded-[8px] py-[13px] px-[15px] text-[12px] leading-[1.65] [overflow-wrap:anywhere]">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <strong data-number></strong>
+            <span data-result class="text-[11px] text-muted data-[state=correct]:text-[#ff2934] data-[state=incorrect]:text-[#f0c7c7]"></span>
+        </div>
+        <p data-question class="m-0 mb-3 font-bold"></p>
+        <p class="m-0"><strong>Ձեր պատասխանը՝</strong> <span data-selected></span></p>
+        <p data-correct-row class="m-0 mt-2 text-muted"><strong>Ճիշտ պատասխանը՝</strong> <span data-correct></span></p>
+    </article>
+</template>

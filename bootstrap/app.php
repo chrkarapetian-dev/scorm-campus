@@ -24,6 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
             $middleware->trustProxies(at: $proxies === '*' ? '*' : explode(',', $proxies));
         }
 
+        // SCORM suspend data and response strings must round-trip byte-for-byte.
+        $middleware->trimStrings(except: [fn (Request $request) => $request->is('api/scorm/progress/*')]);
+        $middleware->convertEmptyStringsToNull(except: [fn (Request $request) => $request->is('api/scorm/progress/*')]);
+
         $middleware->api(append: ['cache.headers:no_store']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

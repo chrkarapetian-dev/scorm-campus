@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A course in the catalogue: one of the numbered bundled courses, with files in
@@ -47,5 +48,10 @@ class ScormCourse extends Model
         $path = implode('/', array_map('rawurlencode', explode('/', $this->launch_path)));
 
         return $this->number !== null ? "/courses/course{$this->number}/{$path}" : "/content/{$this->id}/{$path}";
+    }
+
+    public function progress(): HasMany
+    {
+        return $this->hasMany(CourseProgress::class, 'course_id');
     }
 }

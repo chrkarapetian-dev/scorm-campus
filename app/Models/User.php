@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class User extends Authenticatable
@@ -40,5 +41,10 @@ class User extends Authenticatable
         static::whereKey($this->id)->where('ai_questions_used', '>', 0)->decrement('ai_questions_used');
 
         $this->refresh();
+    }
+
+    public function progress(): HasMany
+    {
+        return $this->hasMany(CourseProgress::class, 'user_id');
     }
 }

@@ -3,11 +3,12 @@
         <div>
             <x-eyebrow>ՈՒՍՈՒՄՆԱԿԱՆ ՎԵՐԼՈՒԾՈՒԹՅՈՒՆ</x-eyebrow>
             <h1 class="font-display font-bold text-[32px] tracking-[-.04em] my-[7px] max-compact:text-[27px]">Իմ առաջընթացը</h1>
-            <p class="text-[12px] text-muted">Առաջընթացը պահվում է այս դիտարկչում՝ այս հղման հասցեի համար։ Այլ հասցեով կամ դիտարկչով բացելիս այն չի փոխանցվում։</p>
+            <p class="text-[12px] text-muted">Առաջընթացը պահպանվում է ձեր հաշվում և հասանելի է այլ դիտարկիչներից։</p>
         </div>
         <x-button variant="outline" id="reset-progress">Վերակայել առաջընթացը</x-button>
     </div>
 
+    <p id="progress-save-status" role="status" class="text-[12px] text-muted"></p>
     <section id="progress-course-access" hidden class="flex justify-between items-center gap-5 mt-5 mb-6 py-5 px-[22px] border border-[#502445] rounded-[10px] bg-[linear-gradient(130deg,#1a0e25,#100819_62%,#210b20)] max-compact:items-start max-compact:flex-col max-compact:p-[17px]">
         <div>
             <x-eyebrow>ARTICULATE · STORYLINE</x-eyebrow>
@@ -17,10 +18,10 @@
         <x-button id="progress-open-course" class="flex-none">Բացել դասընթացը →</x-button>
     </section>
 
-    <div class="grid grid-cols-[repeat(3,1fr)] gap-3 mb-[23px] max-compact:gap-[6px]">
+    <div class="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-3 mb-[23px] [&>*]:min-w-0 [overflow-wrap:anywhere] max-compact:gap-[6px]">
         <x-analytics-card label="Articulate բաժիններ" stat="stat-sections" />
         <x-analytics-card label="Ինքնաստուգման արդյունք" stat="stat-quiz" />
-        <x-analytics-card label="Storyline կարգավիճակ" stat="stat-status" stat-class="text-[18px] leading-[1.35]" />
+        <x-analytics-card label="Storyline կարգավիճակ" stat="stat-status" stat-class="text-[18px] leading-[1.35] max-compact:text-[13px]" />
     </div>
 
     <div class="grid gap-2">
@@ -42,4 +43,14 @@
             </div>
         @endforeach
     </div>
+    <details id="progress-answer-review" class="mt-6 min-w-0 rounded-[8px] border border-[#29342c] bg-[#171d19]">
+        <summary class="cursor-pointer px-[15px] py-[13px] text-[13px] font-bold">
+            Ինքնաստուգիչ հարցերի պատասխանները
+            <span id="progress-answer-count" class="ml-2 text-[11px] font-normal text-muted"></span>
+        </summary>
+        <div class="px-[15px] pb-[15px] min-w-0">
+            <p id="progress-answers-empty" class="text-[12px] text-muted">Պահպանված պատասխաններ դեռ չկան։</p>
+            <div id="progress-answers" class="grid gap-3 min-w-0"></div>
+        </div>
+    </details>
 </div>
