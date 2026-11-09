@@ -108,23 +108,6 @@ class AssistantController extends Controller
         return response()->json(['answer' => $result['answer'], 'questions_remaining' => $user->aiQuestionsRemaining()]);
     }
 
-    public function evaluate(Request $request): JsonResponse
-    {
-        $body = $this->jsonBody($request);
-
-        if ($body === null) {
-            return response()->json(['error' => 'Հարցման տվյալները սխալ են։'], 400);
-        }
-
-        $answer = mb_substr($this->text($body, 'student_response'), 0, 6000);
-
-        if (mb_strlen($answer) < 40) {
-            return response()->json(['error' => 'Գրեք առնվազն 40 նիշ՝ հարցին ամբողջական պատասխանելու համար։'], 400);
-        }
-
-        return response()->json($this->assistant->evaluate($answer));
-    }
-
     private function limitReached(): JsonResponse
     {
         return response()->json(['error' => 'Դուք օգտագործել եք AI-ին հարց տալու ձեր բոլոր հնարավորությունները։', 'questions_remaining' => 0], 403);

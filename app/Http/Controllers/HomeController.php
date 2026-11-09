@@ -22,12 +22,16 @@ class HomeController extends Controller
             'frontend' => [
                 'courses' => $courses->map(fn (ScormCourse $course) => [
                     'id' => $course->id,
+                    'number' => $course->number,
                     'title' => $course->title,
                     'url' => $course->launchUrl(),
                     'assistant' => $hasAssistant[$course->id],
-                    'openQuestion' => (int) $course->number === config('scorm.open_question_course'),
+                    'openQuestion' => $hasAssistant[$course->id],
+                    'assignmentQuestion' => $course->assignmentQuestion(),
                 ]),
                 'sections' => $sections,
+                'assignmentMessages' => trans('assignment'),
+                'assignmentTimeoutMs' => (2 * config('services.openai.timeout') + 15) * 1000,
             ],
         ]);
     }

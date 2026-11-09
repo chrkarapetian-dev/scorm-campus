@@ -7,22 +7,22 @@
         </div>
     </div>
 
-    <div class="grid gap-[18px] items-stretch grid-cols-[repeat(auto-fill,minmax(min(100%,350px),1fr))]">
+    <div class="grid gap-[18px] items-stretch auto-rows-fr grid-cols-[repeat(auto-fill,minmax(min(100%,350px),1fr))]">
         @forelse ($courses as $course)
-            <article class="grid grid-cols-[1fr] min-h-0 overflow-hidden border border-line-strong rounded-[13px] bg-surface shadow-[0_10px_35px_#0002]">
-                <div class="relative min-h-[218px] overflow-hidden p-[23px] flex flex-col justify-between bg-[radial-gradient(ellipse_at_55%_52%,#9c1ad4_0,#48146b_34%,#1a0c27_72%,#10091a_100%)] max-compact:min-h-[190px] before:box-content before:content-[''] before:absolute before:z-[1] before:pointer-events-none before:border before:border-[#d4e8d122] before:rounded-[50%] before:w-[310px] before:h-[160px] before:left-1/2 before:top-[53%] before:[transform:translate(-50%,-50%)_rotate(-28deg)] after:box-content after:content-[''] after:absolute after:z-[1] after:pointer-events-none after:border after:border-[#d4e8d122] after:rounded-[50%] after:w-[230px] after:h-[330px] after:left-1/2 after:top-[53%] after:[transform:translate(-50%,-50%)_rotate(35deg)]">
+            <article class="flex flex-col min-h-0 overflow-hidden border border-line-strong rounded-[13px] bg-surface shadow-[0_10px_35px_#0002]">
+                <div class="relative h-[218px] shrink-0 overflow-hidden p-[23px] flex flex-col justify-between bg-[radial-gradient(ellipse_at_55%_52%,#9c1ad4_0,#48146b_34%,#1a0c27_72%,#10091a_100%)] max-compact:h-[190px] before:box-content before:content-[''] before:absolute before:z-[1] before:pointer-events-none before:border before:border-[#d4e8d122] before:rounded-[50%] before:w-[310px] before:h-[160px] before:left-1/2 before:top-[53%] before:[transform:translate(-50%,-50%)_rotate(-28deg)] after:box-content after:content-[''] after:absolute after:z-[1] after:pointer-events-none after:border after:border-[#d4e8d122] after:rounded-[50%] after:w-[230px] after:h-[330px] after:left-1/2 after:top-[53%] after:[transform:translate(-50%,-50%)_rotate(35deg)]">
                     <img src="{{ asset('images/sustainable-development-poster.svg') }}" alt="Կայուն զարգացման թեմայով դասընթացի պաստառ" class="absolute inset-0 w-full h-full object-cover opacity-[.82]">
                     <span class="relative z-[2] text-[9px] tracking-[.16em] text-[#f5f5f1] font-bold py-2 px-[10px] border border-[#ffb2d966] bg-[#160a22cc] rounded-[5px] self-start">ARTICULATE · STORYLINE</span>
                     <i class="relative z-[2] not-italic text-[9px] tracking-[.16em] text-[#f5f5f1] font-bold py-2 px-[10px] border border-[#ffb2d966] bg-[#160a22cc] rounded-[5px] self-end">ԻՆՏԵՐԱԿՏԻՎ ԴԱՍԸՆԹԱՑ</i>
                 </div>
-                <div class="p-[23px] min-h-[215px] flex flex-col items-start justify-center max-compact:min-h-0">
+                <div class="p-[23px] flex flex-1 flex-col items-start">
                     <x-eyebrow>ՀԱՅԵՐԵՆ · SCORM ԴԱՍԸՆԹԱՑ</x-eyebrow>
-                    <h2 class="font-display font-bold text-[23px] my-[9px]">{{ $course->title }}</h2>
+                    <h2 class="font-display font-bold text-[23px] leading-[1.3] min-h-[5.2em] my-[9px]">{{ $course->title }}</h2>
                     <p class="text-[12px] text-prose leading-[1.7] mb-[22px]">Կայուն զարգացումը՝ չափելի փոփոխությունների, մարդկանց բարեկեցության և շրջակա միջավայրի պահպանության միջոցով։</p>
                     @if ($hasAssistant[$course->id])
                         <span class="text-[10px] font-bold text-accent-pale mb-[14px]">✦ AI օգնականը հասանելի է</span>
                     @endif
-                    <x-button class="mt-[5px]" data-open-course="{{ $course->id }}">Բացել Articulate դասը <span>→</span></x-button>
+                    <x-button class="mt-auto" data-open-course="{{ $course->id }}">Բացել Articulate դասը <span>→</span></x-button>
                 </div>
             </article>
         @empty

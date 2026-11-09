@@ -10,12 +10,26 @@ class BundledCourseSeeder extends Seeder
 {
     public function run(): void
     {
+        $titles = [
+            1 => 'Կայուն զարգացման հիմունքներ Մաս 1',
+            2 => 'Կայուն զարգացման հիմունքներ Մաս 2',
+            3 => 'Կայուն զարգացման հայեցակարգի առաջացման կազմակերպչական գործընթացը',
+            4 => '«Կայունություն» և «կայուն զարգացում» հասկացությունները',
+            5 => 'Կայուն զարգացման հայեցակարգի հիմնական հարցադրումները',
+            6 => 'Կայուն զարգացման հայեցակարգի մեթոդաբանական հիմքը․ համակարգային մոտեցում',
+            7 => 'Կայուն զարգացման հիմունքներ Մաս 7',
+            8 => 'Կայուն զարգացման ցուցանիշները (ինդիկատորներ և ինդեքսներ) և նպատակները',
+            9 => 'Կայուն զարգացում ապահովելու ռազմավարական անցումները',
+            10 => 'Կայուն զարգացում ապահովող սուբյեկտները',
+            11 => 'Կայուն զարգացման հիմունքներ Մաս 11',
+        ];
+
         foreach (range(1, config('scorm.bundled_course_count')) as $number) {
             $folder = config('scorm.courses_path')."/course{$number}";
 
             ScormCourse::updateOrCreate(['number' => $number], [
                 'id' => substr(md5("course{$number}"), 0, 16),
-                'title' => "ԴԱՍ {$number}",
+                'title' => $titles[$number] ?? "ԴԱՍ {$number}",
                 'description' => 'Articulate Storyline դասընթաց',
                 'category' => 'Articulate Storyline',
                 // The LMS page reports progress through the app's SCORM API; not every course was published with one.

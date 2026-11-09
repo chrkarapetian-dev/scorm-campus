@@ -40,6 +40,17 @@ class CourseChunkSearch
      */
     public function relevant(ScormCourse $course, string $question): array
     {
+        return $this->ranked($course, $question, config('scorm.search.min_coverage'), config('scorm.search.min_relative_score'), config('scorm.search.max_chunks'));
+    }
+
+    /** Fixed question-based evidence, independent of the learner's answer. */
+    public function forAssignment(ScormCourse $course, string $question): array
+    {
+        return $this->ranked($course, $question, 0, 0, config('scorm.assignments.max_chunks'));
+    }
+
+    private function ranked(ScormCourse $course, string $question, float $minCoverage, float $minRelativeScore, int $maxChunks): array
+    {
         $chunks = $this->texts->chunks($course);
         $queryTerms = array_values(array_unique(self::terms($question)));
 
@@ -74,7 +85,7 @@ class CourseChunkSearch
 
             // Rarity only ranks here: as a gate it lets one unmatched word veto the course's own main terms.
             // A chunk that passes wrongly is caught by the model, which reports it found no answer.
-            if ($matched / count($queryTerms) >= config('scorm.search.min_coverage')) {
+            if ($score > 0 && $matched / count($queryTerms) >= $minCoverage) {
                 $scored[$c] = $score;
             }
         }
@@ -90,7 +101,7 @@ class CourseChunkSearch
         $seen = [];
 
         foreach ($scored as $c => $score) {
-            if (count($selected) === config('scorm.search.max_chunks') || $score < $best * config('scorm.search.min_relative_score')) {
+            if (count($selected) === $maxChunks || $score < $best * $minRelativeScore) {
                 break;
             }
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\AssistantController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\LearningCourseController;
@@ -15,8 +16,12 @@ Route::middleware(['web', 'auth'])->group(function () {
 
     Route::get('/courses', [CourseController::class, 'index']);
 
+    Route::post('/scorm/evaluate-open-ended', [AssignmentController::class, 'store'])->middleware('throttle:assignments');
+    Route::get('/scorm/assignment-submissions', [AssignmentController::class, 'index']);
+    Route::get('/scorm/assignment-submissions/{submission}', [AssignmentController::class, 'show'])->whereNumber('submission');
+
     Route::middleware('throttle:assistant')->prefix('scorm')->group(function () {
         Route::post('/qa-assistant', [AssistantController::class, 'question']);
-        Route::post('/evaluate-open-ended', [AssistantController::class, 'evaluate']);
+
     });
 });

@@ -236,4 +236,20 @@ class ScormCourseTest extends TestCase
             ->assertJsonPath('0.duration', 'Ինքնուրույն ուսուցում')
             ->assertJsonCount(2);
     }
+    public function test_open_question_is_available_only_with_the_course_assistant(): void
+    {
+        config(['services.openai.key' => 'sk-test']);
+        ScormCourse::create(['id' => str_repeat('a', 16), 'number' => 3, 'title' => 'AI', 'description' => 'd', 'category' => 'c', 'launch_path' => 'a.html']);
+        ScormCourse::create(['id' => str_repeat('b', 16), 'number' => 8, 'title' => 'No AI', 'description' => 'd', 'category' => 'c', 'launch_path' => 'b.html']);
+        $this->mock(\App\Services\CourseTextRepository::class, function ($mock) {
+            $mock->shouldReceive('hasText')->andReturnUsing(fn ($course) => $course->number === 3);
+        });
+
+        $this->get('/')->assertOk()->assertViewHas('frontend', function ($frontend) {
+            $courses = $frontend['courses']->keyBy('id');
+            return $courses[str_repeat('a', 16)]['openQuestion'] === true
+                && $courses[str_repeat('b', 16)]['openQuestion'] === false;
+        });
+    }
+
 }

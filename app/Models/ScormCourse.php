@@ -28,6 +28,12 @@ class ScormCourse extends Model
         $query->where('is_available', true);
     }
 
+    public function assignmentQuestion(): string
+    {
+        return config("scorm.assignments.questions.{$this->number}")
+            ?? __('assignment.default_question', ['title' => $this->title]);
+    }
+
     public function storagePath(): string
     {
         return $this->number !== null

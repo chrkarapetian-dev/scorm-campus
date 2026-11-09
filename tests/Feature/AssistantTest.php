@@ -14,7 +14,7 @@ class AssistantTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const LONG_ANSWER = 'Կայուն զարգացման ինդիկատորները օգնում են չափել կրթության, եկամտի և կլիմայի փոփոխությունը։ Օրինակ՝ համայնքում կարելի է հետևել ջրի որակի տվյալներին, քանի որ դա ազդում է առողջության վրա։';
+    private const LONG_ANSWER = 'Կայուն զարգացման ինդիկատորները օգնում են չափել կրթության, եկամտի և կլիմայի փոփոխությունը։ Օրինակ՝ համայնքում կարելի է հետևել ջրի որակի տվյալներին, քանի որ դա ազդում է առողջության վրա։ Դա կարևոր է բոլորի համար։';
 
     protected function setUp(): void
     {
@@ -44,18 +44,14 @@ class AssistantTest extends TestCase
 
     public function test_short_answers_are_not_evaluated(): void
     {
-        $this->postJson('/api/scorm/evaluate-open-ended', ['student_response' => 'կարճ'])
-            ->assertStatus(400)
-            ->assertJsonPath('error', 'Գրեք առնվազն 40 նիշ՝ հարցին ամբողջական պատասխանելու համար։');
+        $this->postJson('/api/scorm/evaluate-open-ended', ['student_response' => str_repeat('ա', 199)])
+            ->assertStatus(422)
+            ->assertJsonPath('error', 'Գրեք առնվազն 200 նիշ՝ հարցին ամբողջական պատասխանելու համար։');
     }
 
     public function test_local_evaluation_scores_against_the_rubric(): void
     {
-        $data = $this->postJson('/api/scorm/evaluate-open-ended', ['student_response' => self::LONG_ANSWER])
-            ->assertOk()
-            ->assertJsonCount(4, 'criterion_breakdown')
-            ->assertJsonPath('max_total_score', 100)
-            ->json();
+        $data = app(CourseAssistant::class)->evaluate(self::LONG_ANSWER);
 
         $points = array_column($data['criterion_breakdown'], 'points_earned', 'criterion_id');
 
@@ -67,7 +63,7 @@ class AssistantTest extends TestCase
 
     public function test_off_topic_long_answers_score_below_passing(): void
     {
-        $data = $this->postJson('/api/scorm/evaluate-open-ended', ['student_response' => str_repeat('Այսօր եղանակը շատ գեղեցիկ է։ ', 3)])->assertOk()->json();
+        $data = app(CourseAssistant::class)->evaluate(str_repeat('Այսօր եղանակը շատ գեղեցիկ է։ ', 8));
 
         $this->assertLessThan(60, $data['total_score_awarded']);
         $this->assertSame('Անբավարար', $data['grade_level']);
@@ -88,12 +84,11 @@ class AssistantTest extends TestCase
             ],
         ]);
 
-        $this->postJson('/api/scorm/evaluate-open-ended', ['student_response' => self::LONG_ANSWER])
-            ->assertOk()
-            ->assertJsonPath('total_score_awarded', 40)
-            ->assertJsonPath('max_total_score', 100)
-            ->assertJsonPath('criterion_breakdown.0.points_earned', 30)
-            ->assertJsonPath('criterion_breakdown.1.points_earned', 0);
+        $result = app(CourseAssistant::class)->evaluate(self::LONG_ANSWER);
+        $this->assertSame(40.0, $result['total_score_awarded']);
+        $this->assertSame(100, $result['max_total_score']);
+        $this->assertSame(30, $result['criterion_breakdown'][0]['points_earned']);
+        $this->assertSame(0, $result['criterion_breakdown'][1]['points_earned']);
     }
 
     public function test_a_failed_model_evaluation_falls_back_to_the_rubric(): void
@@ -101,9 +96,9 @@ class AssistantTest extends TestCase
         config(['services.openai.key' => 'sk-test']);
         Http::fake(['api.openai.com/*' => Http::response(['error' => ['type' => 'server_error']], 500)]);
 
-        $this->postJson('/api/scorm/evaluate-open-ended', ['student_response' => self::LONG_ANSWER])
-            ->assertOk()
-            ->assertJsonPath('total_score_awarded', 85);
+        $result = app(CourseAssistant::class)->evaluate(self::LONG_ANSWER);
+        $this->assertSame(85, $result['total_score_awarded']);
+        $this->assertStringContainsString('տեղային գնահատում', $result['notice']);
     }
 
     public function test_assistant_endpoints_are_rate_limited_per_client(): void

@@ -60,6 +60,10 @@ class OpenAiResponses
             );
         }
 
+        if ($response->json('status') !== null && $response->json('status') !== 'completed') {
+            throw new OpenAiRequestFailed('The AI service did not complete its response.');
+        }
+
         foreach ($response->json('output') ?? [] as $item) {
             foreach ($item['content'] ?? [] as $content) {
                 if (($content['type'] ?? null) === 'output_text') {

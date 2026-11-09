@@ -1,16 +1,11 @@
 import { createStorylineTracker } from './storyline.js';
 
-const { courses, sections } = window.usum;
+const { courses, sections, assignmentMessages: assignmentText } = window.usum;
 
 const STORE = 'usum-topic8-progress-v1';
 const FLASH_KEY = 'usum-flash';
-const VIEW_LABELS = { home: 'Դասընթացներ', library: 'Գլխավոր', progress: 'Իմ առաջընթացը' };
-const CRITERION_TITLES = {
-    understanding: 'Թեմայի ըմբռնում',
-    connections: 'Կայունության չափումների կապ',
-    example_measure: 'Օրինակ և չափում',
-    completeness: 'Ամբողջականություն և հստակություն',
-};
+const VIEW_LABELS = { home: 'Գլխավոր', library: 'Գլխավոր', progress: 'Իմ առաջընթացը' };
+
 
 const $ = id => document.getElementById(id);
 const fromTemplate = id => $(id).content.cloneNode(true);
@@ -21,9 +16,10 @@ const elementFromTemplate = (id, text = '') => {
     return element;
 };
 const minutes = seconds => `${Math.floor((seconds || 0) / 60)}ր`;
-const postJson = async (url, body) => {
+const postJson = async (url, body, signal) => {
     const response = await fetch(url, {
         method: 'POST',
+        signal,
         headers: {
             'content-type': 'application/json',
             accept: 'application/json',
@@ -40,7 +36,7 @@ const postJson = async (url, body) => {
 
     const data = await response.json();
 
-    if (!response.ok) throw Object.assign(new Error(data.error), { data });
+    if (!response.ok) throw Object.assign(new Error(data.error || data.message), { data });
 
     return data;
 };
@@ -58,6 +54,8 @@ const saveState = () => localStorage.setItem(STORE, JSON.stringify(state));
 
 let activeCourse = courses[0] || null;
 let loadedFeaturedId = null;
+let reflectionCourseId = null;
+const reflections = new Map();
 let selectedFile = null;
 let toastTimer;
 
@@ -133,7 +131,20 @@ function renderFeaturedCourse(item) {
 
     setScormApi(item);
     selectAssistantCourse(item);
+    if (reflectionCourseId !== item.id) {
+        if (reflectionCourseId) reflections.set(reflectionCourseId, {
+            answer: $('open-answer').value,
+            result: [...$('evaluation-result').childNodes],
+        });
+        const reflection = reflections.get(item.id);
+        $('open-answer').value = reflection?.answer ?? '';
+        $('evaluation-result').replaceChildren(...(reflection?.result ?? []));
+        reflectionCourseId = item.id;
+    }
     $('open-question').hidden = !item.openQuestion;
+    $('assignment-question').textContent = item.assignmentQuestion;
+    syncAnswer();
+    resetAssignmentHistory();
     $('featured-course-title').textContent = item.title;
     $('featured-course').hidden = false;
 
@@ -184,10 +195,12 @@ function closePlayer() {
 // ---- Views -----------------------------------------------------------------
 
 function showView(name) {
-    for (const view of ['home', 'library', 'progress']) $(`view-${view}`).hidden = view !== name;
+    $('view-library').hidden = name === 'progress';
+    $('view-home').hidden = name !== 'home';
+    $('view-progress').hidden = name !== 'progress';
 
     document.querySelectorAll('[data-view]').forEach(link => {
-        if (link.dataset.view === name) link.setAttribute('aria-current', 'page');
+        if (link.dataset.view === (name === 'home' ? 'library' : name)) link.setAttribute('aria-current', 'page');
         else link.removeAttribute('aria-current');
     });
 
@@ -196,7 +209,8 @@ function showView(name) {
     if (name === 'progress') renderAnalytics();
     if (name === 'home') renderFeaturedCourse(activeCourse);
 
-    window.scrollTo(0, 0);
+    if (name === 'home') $('view-home').scrollIntoView();
+    else window.scrollTo(0, 0);
 }
 
 function sectionRow(section, progress) {
@@ -362,67 +376,161 @@ syncAssistant();
 
 // ---- Open question -------------------------------------------------------------
 
-const evaluationBand = score => (score >= 90 ? 'Օրինակելի' : score >= 75 ? 'Իմացող / Լիարժեք' : score >= 60 ? 'Զարգացող' : 'Անբավարար');
+let assignmentBusy = false;
+let pendingAssignmentCourseId = null;
+let historyRequest = 0;
+let historyBefore = null;
+const assignmentAnswer = () => $('open-answer').value.replace(/^[\s\u200B]+|[\s\u200B]+$/gu, '');
+const assignmentMessage = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`:${name}`, value), assignmentText[key]);
 
-function showEvaluationMessage(message) {
-    $('evaluation-result').replaceChildren(elementFromTemplate('tpl-evaluation-box', message));
+function syncAnswer() {
+    const count = Array.from(assignmentAnswer()).length;
+    const valid = count >= 200 && count <= 6000;
+    $('answer-count').textContent = count;
+    $('open-answer-validation').textContent = count > 6000 ? assignmentText.maximum : valid ? assignmentText.ready : assignmentMessage('remaining', { count: 200 - count });
+    $('evaluate-answer').disabled = assignmentBusy || !valid;
+    $('evaluate-answer').textContent = assignmentBusy ? assignmentText.loading : assignmentText.submit;
+    $('open-answer').readOnly = assignmentBusy && pendingAssignmentCourseId === reflectionCourseId;
+    $('open-question').setAttribute('aria-busy', String(assignmentBusy && pendingAssignmentCourseId === reflectionCourseId));
 }
 
-function renderEvaluation(data) {
-    const score = Math.max(0, Math.min(100, Number(data.total_score_awarded) || 0));
+function evaluationMessageElement(message, isError = false) {
+    const box = elementFromTemplate('tpl-evaluation-box', message);
+    box.toggleAttribute('data-flagged', isError);
+    box.setAttribute('role', isError ? 'alert' : 'status');
+    return box;
+}
+
+function showEvaluationMessage(message, isError = false) {
+    $('evaluation-result').replaceChildren(evaluationMessageElement(message, isError));
+}
+
+function evaluationElement(data) {
     const box = elementFromTemplate('tpl-evaluation-box');
     const details = fromTemplate('tpl-evaluation-details');
     const slot = name => details.querySelector(`[data-slot="${name}"]`);
+    const score = data.final_score;
+    const flagged = data.status === 'flagged';
+    box.toggleAttribute('data-flagged', flagged);
+    slot('score').textContent = assignmentMessage('score', { score });
+    slot('bar').setAttribute('aria-valuenow', score);
+    slot('bar').setAttribute('aria-label', assignmentMessage('score', { score }));
+    slot('fill').style.width = `${score}%`;
+    slot('flagged').hidden = !flagged;
+    slot('flagged').textContent = assignmentText.flagged;
+    slot('rule').hidden = !flagged;
+    slot('rule').textContent = assignmentMessage('flagged_rule', { threshold: data.ai_threshold });
+    slot('detection').textContent = assignmentMessage('detection', { percent: data.ai_probability });
+    slot('classification').textContent = assignmentText.classifications[data.classification];
+    slot('reason').textContent = data.reason;
+    slot('summary').textContent = data.feedback?.summary ?? '';
 
-    slot('score').textContent = `${score}/100 միավոր`;
-    slot('level').textContent = evaluationBand(score);
-    slot('summary').textContent = data.summary_feedback_armenian || 'Գնահատումն ավարտված է։';
-    slot('tips').textContent = data.actionable_tips_armenian || '';
-
-    for (const row of data.criterion_breakdown || []) {
+    for (const [id, criterion] of Object.entries(data.feedback?.criteria ?? {})) {
         const item = fromTemplate('tpl-evaluation-criterion');
         const line = item.firstElementChild;
-        line.firstElementChild.textContent = row.title_armenian || CRITERION_TITLES[row.criterion_id] || row.criterion_id;
-        line.append(`՝ ${row.points_earned}/${row.max_points}․ ${row.reasoning_armenian}`);
+        line.firstElementChild.textContent = assignmentText.criteria[id];
+        line.append(`՝ ${criterion.points}/${{ accuracy: 35, understanding: 30, completeness: 25, clarity: 10 }[id]}․ ${criterion.reason}`);
         slot('criteria').append(item);
     }
-
-    if (data.notice) box.append(elementFromTemplate('tpl-evaluation-notice', data.notice));
-
+    for (const field of ['correct_points', 'missing_points', 'improvements']) {
+        const items = data.feedback?.[field] ?? [];
+        details.querySelector(`[data-feedback-section="${field}"]`).hidden = items.length === 0;
+        for (const text of items) slot(field).append(elementFromTemplate('tpl-assignment-feedback', text));
+    }
     box.append(details);
-    $('evaluation-result').replaceChildren(box);
+    return box;
 }
 
+$('open-answer').addEventListener('input', syncAnswer);
 $('evaluate-answer').addEventListener('click', async () => {
-    const answer = $('open-answer').value.trim(), button = $('evaluate-answer');
-
-    if (answer.length < 40) {
-        showEvaluationMessage('Խնդրում ենք գրել առնվազն 40 նիշ՝ հարցին ամբողջական պատասխանելու համար։');
-
+    if (assignmentBusy) return;
+    const answer = assignmentAnswer();
+    const courseId = reflectionCourseId;
+    if (Array.from(answer).length < 200 || Array.from(answer).length > 6000) {
+        syncAnswer();
         return;
     }
-
-    button.disabled = true;
-    button.textContent = 'Պատասխանը գնահատվում է…';
-    showEvaluationMessage('Պատասխանը ստացվել է։ Պատրաստում ենք հետադարձ կապը…');
-    $('evaluation-result').firstElementChild.setAttribute('role', 'status');
-
+    assignmentBusy = true;
+    pendingAssignmentCourseId = courseId;
+    syncAnswer();
+    showEvaluationMessage(assignmentText.processing);
     try {
-        const data = await postJson('/api/scorm/evaluate-open-ended', { student_response: answer });
-
-        state.evaluation = { score: data.total_score_awarded, max: data.max_total_score, at: Date.now() };
-
-        if (!state.completed.includes('reflection')) state.completed.push('reflection');
-
-        saveState();
-        renderEvaluation(data);
+        const data = await postJson('/api/scorm/evaluate-open-ended', { student_response: answer, course_id: courseId }, AbortSignal.timeout(window.usum.assignmentTimeoutMs));
+        const box = evaluationElement(data);
+        if (courseId === reflectionCourseId) {
+            $('evaluation-result').replaceChildren(box);
+            if ($('assignment-history').open) loadAssignmentHistory();
+        } else {
+            const reflection = reflections.get(courseId);
+            if (reflection) reflection.result = [box];
+        }
+        if (courses.find(course => course.id === courseId)?.number === 8) {
+            state.evaluation = { score: data.final_score, max: 100, at: Date.now() };
+            if (!state.completed.includes('reflection')) state.completed.push('reflection');
+            saveState();
+        }
     } catch (error) {
-        showEvaluationMessage(error.message && error.message !== 'Failed to fetch' ? error.message : 'Չհաջողվեց գնահատել պատասխանը։');
+        const message = error.data?.error || assignmentText.failed;
+        if (courseId === reflectionCourseId) showEvaluationMessage(message, true);
+        else if (reflections.has(courseId)) reflections.get(courseId).result = [evaluationMessageElement(message, true)];
     } finally {
-        button.disabled = false;
-        button.textContent = 'Պատասխանել';
+        assignmentBusy = false;
+        pendingAssignmentCourseId = null;
+        syncAnswer();
     }
 });
+
+function resetAssignmentHistory() {
+    historyRequest++;
+    historyBefore = null;
+    $('assignment-history-list').replaceChildren();
+    $('assignment-history-status').textContent = '';
+    $('assignment-history-more').hidden = true;
+    if ($('assignment-history').open && activeCourse?.openQuestion) loadAssignmentHistory();
+}
+
+async function loadAssignmentHistory(append = false) {
+    const courseId = reflectionCourseId;
+    const requestId = ++historyRequest;
+    $('assignment-history-status').textContent = assignmentText.history_loading;
+    $('assignment-history-more').disabled = true;
+    $('assignment-history-retry').disabled = true;
+    try {
+        const query = new URLSearchParams({ course_id: courseId });
+        if (append && historyBefore) query.set('before', historyBefore);
+        const response = await fetch(`/api/scorm/assignment-submissions?${query}`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
+        if (response.status === 401 || response.status === 419) { location.reload(); return; }
+        if (!response.ok) throw new Error();
+        const data = await response.json();
+        if (requestId !== historyRequest || courseId !== reflectionCourseId) return;
+        if (!append) $('assignment-history-list').replaceChildren();
+        for (const submission of data.submissions) {
+            const item = fromTemplate('tpl-assignment-history');
+            const slot = name => item.querySelector(`[data-slot="${name}"]`);
+            slot('title').textContent = `${new Date(submission.created_at).toLocaleString('hy-AM')} · ${submission.final_score}/100`;
+            slot('question').textContent = submission.assignment_question;
+            slot('answer').textContent = submission.answer;
+            slot('result').append(evaluationElement(submission));
+            $('assignment-history-list').append(item);
+        }
+        historyBefore = data.next_before;
+        $('assignment-history-more').hidden = !historyBefore;
+        $('assignment-history-status').textContent = $('assignment-history-list').children.length ? '' : assignmentText.history_empty;
+    } catch {
+        if (requestId === historyRequest) $('assignment-history-status').textContent = assignmentText.history_failed;
+    } finally {
+        if (requestId === historyRequest) {
+            $('assignment-history-more').disabled = false;
+            $('assignment-history-retry').disabled = false;
+        }
+    }
+}
+
+$('assignment-history').addEventListener('toggle', () => {
+    if ($('assignment-history').open) loadAssignmentHistory();
+});
+$('assignment-history-retry').addEventListener('click', () => loadAssignmentHistory());
+$('assignment-history-more').addEventListener('click', () => loadAssignmentHistory(true));
 
 // ---- Upload --------------------------------------------------------------------
 

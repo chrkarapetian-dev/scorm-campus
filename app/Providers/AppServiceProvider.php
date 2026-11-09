@@ -11,6 +11,10 @@ class AppServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
+        RateLimiter::for('assignments', fn (Request $request) => Limit::perMinute(5)
+            ->by('assignment:'.$request->user()->id)
+            ->response(fn () => response()->json(['error' => __('assignment.rate_limited')], 429)));
+
         RateLimiter::for('assistant', fn (Request $request) => Limit::perMinute(20)
             ->by($request->user()?->id ?: $request->ip())
             ->response(fn () => response()->json(

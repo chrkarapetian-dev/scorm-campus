@@ -43,31 +43,38 @@
     </section>
 
     <section id="open-question" hidden class="mt-8 mb-[38px] border border-line-strong rounded-[11px] bg-surface p-6 max-compact:mt-[23px] max-compact:mb-7 max-compact:p-4">
-        <x-section-heading eyebrow="ԻՆՔՆՈՒՐՈՒՅՆ ՄՏԱԾՈՂՈՒԹՅՈՒՆ" title="Բաց հարց" text="Մտածեք կայուն զարգացման մասին՝ որպես մարդկանց կյանքի որակը, տնտեսությունն ու շրջակա միջավայրը միասին դիտարկող մոտեցում։" />
+        <x-section-heading eyebrow="ԻՆՔՆՈՒՐՈՒՅՆ ՄՏԱԾՈՂՈՒԹՅՈՒՆ" title="Առաջադրանք" :text="__('assignment.intro')" />
 
-        <div class="border border-[#42264d] bg-raised rounded-[9px] p-5 mb-[14px] max-compact:p-[14px]">
-            <strong class="block text-[13px] leading-[1.75] mb-[13px]">Ինչպե՞ս կարող են կայուն զարգացման ինդիկատորներն ու համաթվերը օգնել հասկանալ՝ արդյոք երկրի կամ համայնքի զարգացումը բարելավում է մարդկանց կյանքը՝ միաժամանակ պահպանելով տնտեսության և շրջակա միջավայրի հավասարակշռությունը։ Բերեք մեկ օրինակ և նշեք, թե ինչ տվյալներով կչափեիք առաջընթացը։</strong>
-            <p class="text-[11px] leading-[1.7] my-[11px]">Պատասխանում բացատրեք գաղափարների կապը, բերեք հիմնավորված օրինակ և առաջարկեք չափելի տվյալ կամ ինդիկատոր։</p>
+        <div class="border border-[#42264d] bg-raised rounded-[9px] p-5 mb-[18px] max-compact:p-[14px]">
+            <p class="text-[10px] text-accent-pale font-bold mb-[9px]">{{ __('assignment.question_label') }}</p>
+            <strong id="assignment-question" class="block text-[13px] leading-[1.85]"></strong>
         </div>
 
-        <textarea id="open-answer" placeholder="Գրեք ձեր հիմնավորված պատասխանը…" aria-label="Գրեք ձեր պատասխանը" class="block w-full min-h-[155px] border border-field-line rounded-[7px] bg-field text-ink p-3 resize-y text-[12px] leading-[1.65] focus:border-[#ff3678] focus:outline-[#ff3678]"></textarea>
-
-        <div class="flex items-center justify-between gap-3 mt-3 mb-[13px] max-compact:items-start max-compact:flex-col">
-            <span class="text-[10px] text-[#929e93] leading-[1.5]">Գնահատում՝ 100 միավորով։ Չափանիշներն ու աստիճանները՝ ստորև։</span>
-            <x-button id="evaluate-answer" class="flex-none max-compact:w-full">Պատասխանել</x-button>
+        <label for="open-answer" class="block text-[12px] font-bold mb-[9px]">{{ __('assignment.answer_label') }}</label>
+        <textarea id="open-answer" aria-describedby="open-answer-hint open-answer-validation" minlength="200" maxlength="6000" placeholder="{{ __('assignment.answer_placeholder') }}" class="block w-full min-h-[210px] border border-field-line rounded-[7px] bg-field text-ink p-[15px] resize-y text-[12px] leading-[1.85] focus:border-[#ff3678] focus:outline-[#ff3678]"></textarea>
+        <div class="flex justify-between gap-3 mt-[9px] text-[10px] text-caption">
+            <span id="open-answer-hint">{{ __('assignment.hint') }}</span>
+            <span class="whitespace-nowrap"><span id="answer-count">0</span>/6000 {{ __('assignment.counter') }}</span>
+        </div>
+        <div class="flex items-center justify-between gap-3 mt-3 mb-[18px] max-compact:items-start max-compact:flex-col">
+            <span id="open-answer-validation" aria-live="polite" class="text-[11px] text-caption leading-[1.5]"></span>
+            <x-button id="evaluate-answer" disabled class="flex-none disabled:opacity-50 disabled:cursor-not-allowed max-compact:w-full">{{ __('assignment.submit') }}</x-button>
         </div>
 
-        <details open class="my-[14px] border border-[#42264d] rounded-[8px] bg-raised py-3 px-[14px] text-[#d2dbd1]">
-            <summary class="cursor-pointer text-[11px] font-bold text-accent-pale">Գնահատման սանդղակ և միավորների փոխարկում</summary>
-            <div class="grid grid-cols-2 gap-2 mt-3">
-                <x-rubric-band title="Օրինակելի · 90–100">Լիարժեք, ճշգրիտ և հիմնավորված պատասխան՝ հստակ օրինակով ու չափելի տվյալներով։</x-rubric-band>
-                <x-rubric-band title="Իմացող / Լիարժեք · 75–89">Թեման լավ է բացատրված, հիմնական կապերն ու օրինակը ներկայացված են, կան փոքր բացթողումներ։</x-rubric-band>
-                <x-rubric-band title="Զարգացող · 60–74">Կան թեմային վերաբերող գաղափարներ, բայց կապը, օրինակը կամ չափման եղանակը թերի է բացատրված։</x-rubric-band>
-                <x-rubric-band title="Անբավարար · 0–59">Սպասելիքներից ցածր է․ պատասխանը թերի է, շեղված թեմայից կամ անճիշտ, և հիմնական պահանջվող տարրերը բացակայում են։</x-rubric-band>
-            </div>
-            <p class="text-[10px] leading-[1.65] text-[#b3b3b3] mt-[6px] pt-[10px] border-t border-[#2a332d]">Միավորներ՝ թեմայի ըմբռնում՝ 30, կայունության չափումների կապ՝ 25, օրինակ և չափում՝ 25, ամբողջականություն ու հստակություն՝ 20։ Միավորների գումարը որոշում է գնահատման աստիճանը։</p>
+        <details class="my-[14px] border border-[#42264d] rounded-[8px] bg-raised py-3 px-[14px] text-muted">
+            <summary class="cursor-pointer text-[11px] font-bold text-accent-pale">{{ __('assignment.rubric') }}</summary>
+            <p class="text-[11px] leading-[1.8] mt-3">{{ __('assignment.rubric_description') }}</p>
         </details>
-
+        <p class="text-[11px] leading-[1.8] text-caption my-[10px]">{{ __('assignment.policy', ['threshold' => config('scorm.assignments.ai_threshold')]) }}</p>
+        <p class="text-[10px] leading-[1.8] text-dim mb-[18px]">{{ __('assignment.disclaimer') }}</p>
         <div id="evaluation-result" aria-live="polite" class="empty:hidden"></div>
+
+        <details id="assignment-history" class="mt-6 border-t border-line-strong pt-[18px]">
+            <summary class="cursor-pointer text-[12px] font-bold text-muted">{{ __('assignment.history') }}</summary>
+            <p id="assignment-history-status" role="status" class="text-[11px] text-caption mt-3"></p>
+            <div id="assignment-history-list" class="mt-3 space-y-3"></div>
+            <button id="assignment-history-retry" type="button" class="text-[11px] text-accent-pale mt-3">{{ __('assignment.history_retry') }}</button>
+            <button id="assignment-history-more" type="button" hidden class="text-[11px] text-accent-pale mt-3 ml-4">{{ __('assignment.history_more') }}</button>
+        </details>
     </section>
 </div>
