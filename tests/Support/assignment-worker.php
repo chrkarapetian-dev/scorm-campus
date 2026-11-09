@@ -32,7 +32,7 @@ Http::fake(function ($request) {
     return Http::response(['output' => [['content' => [['type' => 'output_text', 'text' => json_encode($data)]]]]]);
 });
 $request = Request::create('/api/scorm/evaluate-open-ended', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-    'course_id' => getenv('ASSIGNMENT_TEST_COURSE_ID'), 'student_response' => str_repeat('Կայուն զարգացման ինդիկատորներ։ ', 10),
+    'course_id' => getenv('ASSIGNMENT_TEST_COURSE_ID'), 'student_response' => 'Կայուն զարգացման ինդիկատորները օգնում են գնահատել համայնքի փոփոխությունները։ Ջրի որակը և կրթության հասանելիությունը կարևոր են մարդկանց կյանքի համար։ Օրինակ՝ ջրի որակի փոփոխությունը համեմատում ենք նախորդ տարվա հետ։',
 ]));
 // Deliberately resolve via a DB read each time: reservation must use current locking reads even
 // when a transaction has already established a repeatable-read snapshot.

@@ -14,11 +14,12 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Process\Process;
+use Tests\FakesOpenAi;
 use Tests\TestCase;
 
 class AssignmentTest extends TestCase
 {
-    use RefreshDatabase;
+    use FakesOpenAi, RefreshDatabase;
 
     private User $learner;
 
@@ -82,14 +83,13 @@ class AssignmentTest extends TestCase
             'correct_points' => ['Չափելի օրինակը ճիշտ է։'], 'missing_points' => ['Տվյալների աղբյուրը։'], 'improvements' => ['Նշեք տվյալների աղբյուրը։']];
     }
 
-    private function envelope(array $data, array $extra = []): array
+    /** One detection and one grading reply per submission; both are always requested together. */
+    private function fake(int $probability = 20, ?array $grade = null, int $times = 1): void
     {
-        return $extra + ['status' => 'completed', 'output' => [['content' => [['type' => 'output_text', 'text' => json_encode($data, JSON_UNESCAPED_UNICODE)]]]], 'usage' => ['input_tokens' => 100, 'output_tokens' => 50]];
-    }
-
-    private function fake(int $probability = 20, ?array $grade = null): void
-    {
-        Http::fakeSequence()->push($this->envelope($this->detection($probability)))->push($this->envelope($grade ?? $this->grade()));
+        $this->fakeOpenAi([
+            'assignment_detection' => array_fill(0, $times, $this->detection($probability)),
+            'assignment_grading' => array_fill(0, $times, $grade ?? $this->grade()),
+        ]);
     }
 
     private function submit(array $extra = [])
@@ -107,35 +107,47 @@ class AssignmentTest extends TestCase
         $this->assertDatabaseCount('assignment_submissions', 0);
     }
 
+    public function test_padding_that_only_meets_the_length_rule_is_refused_without_api_calls(): void
+    {
+        $this->withoutMiddleware(ThrottleRequests::class);
+        foreach ([str_repeat('ա', 200), str_repeat('բառ ', 60), str_repeat('Կայուն զարգացում։ ', 15), str_repeat('1234567890 ', 25)] as $answer) {
+            $this->submit(['student_response' => $answer])->assertUnprocessable()->assertJsonPath('error', __('assignment.meaningless'));
+        }
+        Http::assertNothingSent();
+        $this->assertDatabaseCount('assignment_submissions', 0);
+    }
+
     public function test_exactly_200_unicode_characters_are_accepted_and_saved(): void
     {
+        $answer = mb_substr(self::ANSWER, 0, 200);
+        $this->assertSame(200, mb_strlen($answer));
         $detection = $this->detection();
         $detection['indicators'] = [];
-        Http::fakeSequence()->push($this->envelope($detection))->push($this->envelope($this->grade()));
-        $this->submit(['student_response' => '  '.str_repeat('ա', 200).'  '])->assertOk()->assertJsonPath('final_score', 85);
-        $this->assertDatabaseHas('assignment_submissions', ['answer' => str_repeat('ա', 200), 'user_id' => $this->learner->id, 'status' => 'evaluated', 'final_score' => 85]);
+        $this->fakeOpenAi(['assignment_detection' => [$detection], 'assignment_grading' => [$this->grade()]]);
+        $this->submit(['student_response' => "  $answer \u{200B} "])->assertOk()->assertJsonPath('final_score', 85);
+        $this->assertDatabaseHas('assignment_submissions', ['answer' => $answer, 'user_id' => $this->learner->id, 'status' => 'evaluated', 'final_score' => 85]);
     }
 
     public static function thresholds(): array
     {
-        return [[0, 'likely_human_written', 85, 2], [29, 'likely_human_written', 85, 2], [30, 'suspicious', 85, 2], [35, 'suspicious', 85, 2], [49, 'suspicious', 85, 2], [50, 'potentially_ai_generated', 0, 1], [65, 'potentially_ai_generated', 0, 1], [69, 'potentially_ai_generated', 0, 1], [70, 'strong_ai_indicators', 0, 1], [100, 'strong_ai_indicators', 0, 1]];
+        return [[0, 'likely_human_written', 85], [29, 'likely_human_written', 85], [30, 'suspicious', 85], [35, 'suspicious', 85], [49, 'suspicious', 85], [50, 'potentially_ai_generated', 0], [65, 'potentially_ai_generated', 0], [69, 'potentially_ai_generated', 0], [70, 'strong_ai_indicators', 0], [100, 'strong_ai_indicators', 0]];
     }
 
     #[DataProvider('thresholds')]
-    public function test_server_enforces_all_detection_boundaries(int $probability, string $classification, int $score, int $calls): void
+    public function test_server_enforces_all_detection_boundaries(int $probability, string $classification, int $score): void
     {
         $this->fake($probability);
         $response = $this->submit(['final_score' => 100, 'evaluation_score' => 100, 'ai_probability' => 0, 'status' => 'evaluated', 'assignment_question' => 'forged']);
         $response->assertOk()->assertJsonPath('final_score', $score)->assertJsonPath('classification', $classification)
             ->assertJsonPath('ai_probability', $probability)->assertJsonPath('assignment_question', CourseAssistant::OPEN_QUESTION);
-        Http::assertSentCount($calls);
+        Http::assertSentCount(2);
         $row = AssignmentSubmission::first();
         $this->assertSame($score, $row->final_score);
+        // Both parallel calls are paid for, so both count even when the grade is discarded.
+        $this->assertSame([200, 120, 100], [$row->input_tokens, $row->cached_input_tokens, $row->output_tokens]);
         if ($score === 0) {
             $response->assertJsonPath('feedback', null)->assertJsonPath('status', 'flagged')->assertJsonMissingPath('evaluation_score');
             $this->assertNull($row->evaluation_score);
-        } else {
-            $this->assertSame(200, $row->input_tokens);
         }
     }
 
@@ -170,12 +182,40 @@ class AssignmentTest extends TestCase
 
     public function test_api_failure_has_no_score_or_false_detection_and_same_answer_can_retry(): void
     {
-        Http::fakeSequence()->push(['error' => ['code' => 'server_error']], 500)
-            ->push($this->envelope($this->detection()))->push($this->envelope($this->grade()));
+        $error = fn () => Http::response(['error' => ['code' => 'server_error']], 500);
+        // The quick automatic retry fails as well, so the submission fails without a score.
+        $this->fakeOpenAi(['assignment_detection' => [$error, $error, $this->detection()], 'assignment_grading' => [$this->grade(), $this->grade()]]);
         $this->submit()->assertStatus(503)->assertJsonPath('error', __('assignment.failed'));
         $this->assertUnscoredFailure();
         $this->submit()->assertOk()->assertJsonPath('final_score', 85);
         $this->assertDatabaseCount('assignment_submissions', 1);
+    }
+
+    public function test_a_transient_api_error_is_retried_once_within_the_same_submission(): void
+    {
+        $this->fakeOpenAi([
+            'assignment_detection' => [fn () => Http::response(['error' => ['code' => 'rate_limit_exceeded']], 429), $this->detection()],
+            'assignment_grading' => [fn () => Http::response([], 502), $this->grade()],
+        ]);
+        $this->submit()->assertOk()->assertJsonPath('final_score', 85);
+        Http::assertSentCount(4);
+    }
+
+    public static function permanentErrors(): array
+    {
+        return [[429, 'insufficient_quota'], [400, 'invalid_request_error'], [401, 'invalid_api_key']];
+    }
+
+    #[DataProvider('permanentErrors')]
+    public function test_quota_and_invalid_request_errors_are_not_retried(int $status, string $code): void
+    {
+        $this->fakeOpenAi([
+            'assignment_detection' => [fn () => Http::response(['error' => ['code' => $code, 'message' => 'x']], $status)],
+            'assignment_grading' => [$this->grade()],
+        ]);
+        $this->submit()->assertStatus(503);
+        $this->assertUnscoredFailure();
+        Http::assertSentCount(2);
     }
 
     private function assertUnscoredFailure(): void
@@ -190,7 +230,7 @@ class AssignmentTest extends TestCase
 
     public function test_grading_failure_discards_partial_detection(): void
     {
-        Http::fakeSequence()->push($this->envelope($this->detection()))->push([], 500);
+        $this->fakeOpenAi(['assignment_detection' => [$this->detection()], 'assignment_grading' => [fn () => Http::response([], 500), fn () => Http::response([], 500)]]);
         $this->submit()->assertStatus(503);
         $this->assertUnscoredFailure();
     }
@@ -213,18 +253,22 @@ class AssignmentTest extends TestCase
     #[DataProvider('malformedDetection')]
     public function test_malformed_detection_is_never_final(array $override): void
     {
-        Http::fakeSequence()->push($this->envelope(array_replace($this->detection(), $override)));
+        $this->fakeOpenAi(['assignment_detection' => [array_replace($this->detection(), $override)], 'assignment_grading' => [$this->grade()]]);
         $this->submit()->assertStatus(503);
         $this->assertUnscoredFailure();
-        Http::assertSentCount(1);
+        Http::assertSentCount(2);
     }
 
     public function test_refusal_invalid_json_and_incomplete_response_fail_safely(): void
     {
-        Http::fakeSequence()
-            ->push(['output' => [['content' => [['type' => 'refusal', 'refusal' => 'no']]]]])
-            ->push(['output' => [['content' => [['type' => 'output_text', 'text' => 'invalid']]]]])
-            ->push($this->envelope($this->detection(), ['status' => 'incomplete']));
+        $this->fakeOpenAi([
+            'assignment_detection' => [
+                fn () => Http::response(['output' => [['content' => [['type' => 'refusal', 'refusal' => 'no']]]]]),
+                fn () => Http::response(['output' => [['content' => [['type' => 'output_text', 'text' => 'invalid']]]]]),
+                fn () => Http::response($this->envelope($this->detection(), ['status' => 'incomplete', 'incomplete_details' => ['reason' => 'max_output_tokens']])),
+            ],
+            'assignment_grading' => array_fill(0, 3, $this->grade()),
+        ]);
         for ($i = 0; $i < 3; $i++) {
             $this->submit()->assertStatus(503);
             $this->assertUnscoredFailure();
@@ -254,24 +298,50 @@ class AssignmentTest extends TestCase
         $this->submit()->assertOk()->assertJsonPath('final_score', 1);
     }
 
-    public function test_each_course_uses_its_own_question_and_txt_excerpts_in_both_calls(): void
+    public function test_each_course_uses_its_own_question_and_txt_in_both_calls(): void
     {
         $other = $this->course(6);
-        Http::fakeSequence()->push($this->envelope($this->detection()))->push($this->envelope($this->grade()))
-            ->push($this->envelope($this->detection()))->push($this->envelope($this->grade()));
+        $this->fake(times: 2);
         $this->submit()->assertOk();
         $this->submit(['course_id' => $other->id])->assertOk()->assertJsonPath('assignment_question', $other->assignmentQuestion());
         $requests = Http::recorded();
+        $this->assertCount(4, $requests);
         foreach ($requests as $i => [$request]) {
-            $input = json_decode($request['input'], true);
+            $context = $this->sentContext($request);
             $course = $i < 2 ? $this->course : $other;
-            $this->assertSame($course->assignmentQuestion(), $input['assignment_question']);
-            $text = json_encode($input['course_excerpts'], JSON_UNESCAPED_UNICODE);
+            $this->assertSame($course->assignmentQuestion(), $context['assignment_question']);
+            $this->assertSame($course->title, $context['course_title']);
+            $text = json_encode($context['course_material'], JSON_UNESCAPED_UNICODE);
             $this->assertStringContainsString($i < 2 ? 'Ջրի որակը' : 'Համակարգի տարրերը', $text);
             $this->assertStringNotContainsString($i < 2 ? 'Համակարգի տարրերը' : 'Ջրի որակը', $text);
+            $this->assertSame(self::ANSWER, $this->sentInput($request)['student_answer']);
             $this->assertTrue($request['text']['format']['strict']);
             $this->assertFalse($request['store']);
+            $this->assertSame('medium', $request['reasoning']['effort']);
         }
+    }
+
+    public function test_the_whole_course_text_and_question_form_a_cacheable_prefix_shared_by_all_learners(): void
+    {
+        $this->fake(times: 2);
+        $this->submit()->assertOk();
+        $this->actingAs(User::create(['name' => 'Other', 'email' => 'other@example.com', 'password' => 'password']));
+        $this->submit(['student_response' => self::ANSWER.' Լրացուցիչ միտք կրթության մասին։'])->assertOk();
+
+        $requests = collect(Http::recorded())->map(fn ($pair) => $pair[0]);
+        foreach ($requests as $request) {
+            $this->assertSame(['mode' => 'explicit'], $request['prompt_cache_options']);
+            $this->assertSame(['mode' => 'explicit'], $request['input'][0]['content'][1]['prompt_cache_breakpoint']);
+            $this->assertSame('developer', $request['input'][0]['role']);
+            $this->assertSame('user', $request['input'][1]['role']);
+            // The learner's text never enters the cached developer prefix.
+            $this->assertStringNotContainsString('Ջրի որակը և կրթության', json_encode($request['input'][0], JSON_UNESCAPED_UNICODE));
+        }
+        // Same course and prompt: byte-identical prefix for both learners, so the second reads the cache.
+        $grading = $requests->filter(fn ($r) => $r['text']['format']['name'] === 'assignment_grading')->values();
+        $this->assertSame($grading[0]['input'][0], $grading[1]['input'][0]);
+        // Small courses are sent whole rather than as search excerpts.
+        $this->assertSame([['heading' => $this->course->title, 'text' => file_get_contents($this->root.'/course8.txt')]], $this->sentContext($grading[0])['course_material']);
     }
 
     public function test_identical_repeated_submissions_reuse_result_without_api_calls(): void
@@ -290,7 +360,7 @@ class AssignmentTest extends TestCase
             if (! $nested) {
                 $nested = true;
                 $this->submit()->assertStatus(409);
-                $this->submit(['student_response' => self::ANSWER.' Այլ պատասխան։'])->assertStatus(409);
+                $this->submit(['student_response' => self::ANSWER.' Այլ պատասխան կրթության մասին։'])->assertStatus(409);
             }
 
             return Http::response($this->envelope($request['text']['format']['name'] === 'assignment_detection' ? $this->detection() : $this->grade()));
@@ -302,7 +372,7 @@ class AssignmentTest extends TestCase
 
     public function test_abandoned_reservation_can_be_reclaimed_and_stale_worker_cannot_finalize(): void
     {
-        Http::fakeSequence()->push([], 500)->push($this->envelope($this->detection()))->push($this->envelope($this->grade()));
+        $this->fakeOpenAi(['assignment_detection' => [fn () => Http::response([], 400), $this->detection()], 'assignment_grading' => [$this->grade(), $this->grade()]]);
         $this->submit()->assertStatus(503);
         AssignmentSubmission::query()->update(['status' => 'processing', 'processing_token' => str_repeat('a', 32), 'processing_expires_at' => now()->subMinute()]);
         $this->submit()->assertOk();
@@ -392,8 +462,7 @@ class AssignmentTest extends TestCase
 
     public function test_changed_question_invalidates_previously_cached_submission(): void
     {
-        Http::fakeSequence()->push($this->envelope($this->detection()))->push($this->envelope($this->grade()))
-            ->push($this->envelope($this->detection()))->push($this->envelope($this->grade()));
+        $this->fake(times: 2);
         $first = $this->submit()->assertOk()->json('id');
         config(['scorm.assignments.questions.8' => 'Բացատրեք կայուն զարգացման ինդիկատորներն ու դրանց չափման եղանակները։']);
         $second = $this->submit()->assertOk()->json('id');
@@ -422,9 +491,20 @@ class AssignmentTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_changed_course_text_invalidates_previously_cached_submission(): void
+    {
+        $this->fake(times: 2);
+        $first = $this->submit()->assertOk()->json('id');
+        $this->submit()->assertOk()->assertJsonPath('id', $first);
+        file_put_contents($this->root.'/course8.txt', file_get_contents($this->root.'/course8.txt').' Կրթության հասանելիությունը նույնպես չափվում է։');
+        touch($this->root.'/course8.txt', time() + 5);
+        $this->assertNotSame($first, $this->submit()->assertOk()->json('id'));
+        Http::assertSentCount(4);
+    }
+
     public function test_course_qa_still_uses_selected_txt_and_records_allowance(): void
     {
-        Http::fakeSequence()->push($this->envelope(['answer' => 'Ջրի որակը չափելի տվյալ է։', 'found' => true]));
+        $this->fakeOpenAi(['course_answer' => [['answer' => 'Ջրի որակը չափելի տվյալ է։', 'found' => true]]]);
         $this->postJson('/api/scorm/qa-assistant', ['course_id' => $this->course->id, 'student_question' => 'Ջրի որակը չափելի տվյալ է՞'])
             ->assertOk()->assertJsonPath('answer', 'Ջրի որակը չափելի տվյալ է։');
         $this->assertDatabaseHas('ai_questions', ['course_id' => $this->course->id, 'user_id' => $this->learner->id]);

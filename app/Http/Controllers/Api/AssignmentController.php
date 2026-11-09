@@ -37,6 +37,9 @@ class AssignmentController extends Controller
         if (mb_strlen($answer) > 6000) {
             return $this->error('maximum', 422);
         }
+        if (! $this->looksLikeText($answer)) {
+            return $this->error('meaningless', 422);
+        }
         if (Validator::make($body, ['course_id' => ['required', 'string', 'size:16']])->fails()) {
             return $this->error('course_required', 422);
         }
@@ -86,7 +89,7 @@ class AssignmentController extends Controller
         }
         $submission = $reservation['submission'];
         try {
-            $result = $evaluator->evaluate($question, $answer, $excerpts, $threshold);
+            $result = $evaluator->evaluate($question, $answer, $excerpts, $threshold, $course->title);
             foreach (['detection_details', 'evaluation_feedback'] as $field) {
                 if (is_array($result[$field])) {
                     $result[$field] = json_encode($result[$field], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
@@ -150,6 +153,18 @@ class AssignmentController extends Controller
             'reason' => $row->ai_reason, 'ai_threshold' => $row->ai_threshold,
             'feedback' => $row->evaluation_feedback, 'created_at' => $row->created_at->toIso8601String(),
         ];
+    }
+
+    /**
+     * Padding such as one letter repeated 200 times, or a few words over and over, meets the length
+     * rule without being an answer. It is refused before any AI call. A real 200-character answer
+     * has about 25 words, so the bar of 8 different words leaves room for terse writing.
+     */
+    private function looksLikeText(string $answer): bool
+    {
+        preg_match_all('/\p{L}{2,}/u', mb_strtolower($answer), $words);
+
+        return count(array_unique($words[0])) >= 8;
     }
 
     private function error(string $key, int $status): JsonResponse

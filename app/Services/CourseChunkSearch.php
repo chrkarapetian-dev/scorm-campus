@@ -4,7 +4,12 @@ namespace App\Services;
 
 use App\Models\ScormCourse;
 
-/** Keyword search over one course's chunks, ranked with BM25. Armenian words are reduced to rough stems first. */
+/**
+ * Picks the course text the model reads. A course that fits the token budget is sent whole: the
+ * model then sees everything and handles rephrased, synonym or foreign-language questions that a
+ * keyword search misses, and the identical text is cached by OpenAI between requests. Only a text
+ * over the budget is cut down to its best chunks, ranked with BM25 over rough Armenian stems.
+ */
 class CourseChunkSearch
 {
     private const K1 = 1.2;
@@ -33,20 +38,33 @@ class CourseChunkSearch
     public function __construct(private readonly CourseTextRepository $texts) {}
 
     /**
-     * The chunks worth sending for this question, in reading order. Empty when
-     * the course text doesn't cover enough of what was asked.
+     * The material to send for this question, in reading order. Empty only when the course has no
+     * text, or (for an oversized text) when the search finds nothing that covers the question.
      *
      * @return list<array{heading: string, text: string}>
      */
     public function relevant(ScormCourse $course, string $question): array
     {
-        return $this->ranked($course, $question, config('scorm.search.min_coverage'), config('scorm.search.min_relative_score'), config('scorm.search.max_chunks'));
+        return $this->wholeText($course)
+            ?? $this->ranked($course, $question, config('scorm.search.min_coverage'), config('scorm.search.min_relative_score'), config('scorm.search.max_chunks'));
     }
 
-    /** Fixed question-based evidence, independent of the learner's answer. */
+    /** Fixed question-based evidence, independent of the learner's answer, so every learner is graded against the same text. */
     public function forAssignment(ScormCourse $course, string $question): array
     {
-        return $this->ranked($course, $question, 0, 0, config('scorm.assignments.max_chunks'));
+        return $this->wholeText($course) ?? $this->ranked($course, $question, 0, 0, config('scorm.assignments.max_chunks'));
+    }
+
+    /** @return ?list<array{heading: string, text: string}> */
+    private function wholeText(ScormCourse $course): ?array
+    {
+        $tokens = $this->texts->tokens($course);
+
+        if ($tokens === 0 || $tokens > config('scorm.context.full_text_max_tokens')) {
+            return null;
+        }
+
+        return [['heading' => $course->title, 'text' => $this->texts->text($course)]];
     }
 
     private function ranked(ScormCourse $course, string $question, float $minCoverage, float $minRelativeScore, int $maxChunks): array

@@ -2,44 +2,77 @@
 
 namespace Tests\Feature;
 
+use App\Models\AiQuestion;
+use App\Models\ScormCourse;
 use App\Models\User;
 use App\Services\CourseAssistant;
-use Database\Seeders\LearningCourseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
+use Tests\FakesOpenAi;
 use Tests\TestCase;
 
 class AssistantTest extends TestCase
 {
-    use RefreshDatabase;
+    use FakesOpenAi, RefreshDatabase;
 
-    private const LONG_ANSWER = 'Կայուն զարգացման ինդիկատորները օգնում են չափել կրթության, եկամտի և կլիմայի փոփոխությունը։ Օրինակ՝ համայնքում կարելի է հետևել ջրի որակի տվյալներին, քանի որ դա ազդում է առողջության վրա։ Դա կարևոր է բոլորի համար։';
+    private const ENDPOINT = '/api/scorm/qa-assistant';
+
+    private const TEXT_8 = "Կայուն զարգացման ցուցանիշները\nՄարդկային զարգացման համաթիվ։ Մարդկային զարգացման համաթիվը համակցված ցուցանիշ է, որը չափում է կյանքի տևողությունը, կրթությունը և եկամուտը։\nԷկոլոգիական ոտնահետքը ցույց է տալիս սպառման համար անհրաժեշտ ռեսուրսները։";
+
+    private const TEXT_6 = "1992 թ. Ռիո դե Ժանեյրոյում կայացած ՄԱԿ-ի համաժողովը ընդունեց կայուն զարգացման հայեցակարգը։\nԳեոհամակարգ տերմինն առաջինն օգտագործել է Վ. Սոչավան 1963 թ.։";
+
+    private User $learner;
+
+    private ScormCourse $course;
+
+    private string $root;
 
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->seed(LearningCourseSeeder::class);
-        config(['services.openai.key' => null, 'services.openai.question_limit' => 1000]);
-        $this->actingAs(User::create(['name' => 'T', 'email' => 't@example.com', 'password' => 'password']));
+        $this->root = sys_get_temp_dir().'/assistant-'.bin2hex(random_bytes(6));
+        File::ensureDirectoryExists($this->root);
+        config(['app.debug' => false, 'services.openai.key' => 'test-key', 'services.openai.question_limit' => 10, 'scorm.texts_path' => $this->root]);
+        $this->learner = User::create(['name' => 'T', 'email' => 't@example.com', 'password' => 'password']);
+        $this->actingAs($this->learner);
+        $this->course = $this->course(8, self::TEXT_8);
+        Http::preventStrayRequests();
     }
 
-    private function fakeOpenAi(array $json): void
+    protected function tearDown(): void
     {
-        Http::fake(['api.openai.com/*' => Http::response([
-            'output' => [['content' => [['type' => 'output_text', 'text' => json_encode($json)]]]],
-        ])]);
+        File::deleteDirectory($this->root);
+        parent::tearDown();
     }
 
-    public function test_question_is_required(): void
+    private function course(int $number, string $text): ScormCourse
     {
-        $this->postJson('/api/scorm/qa-assistant', ['student_question' => '   '])
-            ->assertStatus(400)
-            ->assertJsonPath('error', 'Գրեք ձեր հարցը։');
+        file_put_contents($this->root."/course$number.txt", $text);
 
-        $this->call('POST', '/api/scorm/qa-assistant', [], [], [], ['CONTENT_TYPE' => 'application/json'], 'not json')
-            ->assertStatus(400);
+        return ScormCourse::create(['id' => substr(md5("assistant-$number"), 0, 16), 'number' => $number, 'title' => "Դաս $number", 'description' => 'd', 'category' => 'c', 'launch_path' => 'story.html']);
+    }
+
+    private function ask(string $question, ?ScormCourse $course = null)
+    {
+        return $this->postJson(self::ENDPOINT, ['course_id' => ($course ?? $this->course)->id, 'student_question' => $question]);
+    }
+
+    private function answered(string $answer = 'Համաթիվը չափում է կյանքի տևողությունը, կրթությունը և եկամուտը։'): array
+    {
+        return ['answer' => $answer, 'found' => true];
+    }
+
+    public function test_question_is_required_and_bounded(): void
+    {
+        $this->postJson(self::ENDPOINT, ['student_question' => '   '])->assertStatus(400)->assertJsonPath('error', 'Գրեք ձեր հարցը։');
+        $this->call('POST', self::ENDPOINT, [], [], [], ['CONTENT_TYPE' => 'application/json'], 'not json')->assertStatus(400);
+        $this->ask(str_repeat('ա', 101))->assertStatus(422);
+        $this->postJson(self::ENDPOINT, ['course_id' => str_repeat('f', 16), 'student_question' => 'Ինչ է համաթիվը'])->assertNotFound();
+        Http::assertNothingSent();
     }
 
     public function test_short_answers_are_not_evaluated(): void
@@ -49,90 +82,152 @@ class AssistantTest extends TestCase
             ->assertJsonPath('error', 'Գրեք առնվազն 200 նիշ՝ հարցին ամբողջական պատասխանելու համար։');
     }
 
-    public function test_local_evaluation_scores_against_the_rubric(): void
+    public function test_the_whole_course_text_is_sent_as_a_cached_prefix_and_the_question_separately(): void
     {
-        $data = app(CourseAssistant::class)->evaluate(self::LONG_ANSWER);
+        $this->fakeOpenAi(['course_answer' => [$this->answered(), $this->answered('Ոտնահետքը ցույց է տալիս ռեսուրսները։')]]);
 
-        $points = array_column($data['criterion_breakdown'], 'points_earned', 'criterion_id');
+        $this->ask('Ինչ է HDI-ն')->assertOk()->assertJsonPath('questions_remaining', 9);
+        $this->ask('Ինչ է էկոլոգիական հետքը')->assertOk()->assertJsonPath('answer', 'Ոտնահետքը ցույց է տալիս ռեսուրսները։');
 
-        $this->assertSame(['understanding' => 27, 'connections' => 19, 'example_measure' => 25, 'completeness' => 14], $points);
-        $this->assertSame(85, $data['total_score_awarded']);
-        $this->assertSame('Իմացող / Լիարժեք', $data['grade_level']);
-        $this->assertStringContainsString('տեղային գնահատում', $data['notice']);
+        [[$first], [$second]] = Http::recorded();
+        $this->assertSame(['course_title' => 'Դաս 8', 'course_material' => [['heading' => 'Դաս 8', 'text' => self::TEXT_8]]], $this->sentContext($first));
+        $this->assertSame(['student_question' => 'Ինչ է HDI-ն'], $this->sentInput($first));
+        // A different question leaves the cached prefix byte-identical.
+        $this->assertSame($first['input'][0], $second['input'][0]);
+        $this->assertSame(['mode' => 'explicit'], $first['input'][0]['content'][1]['prompt_cache_breakpoint']);
+        $this->assertSame('low', $first['reasoning']['effort']);
+        $this->assertSame('gpt-6-luna', $first['model']);
+        $this->assertFalse($first['store']);
+        $this->assertTrue($first['text']['format']['strict']);
+
+        $this->assertDatabaseHas('ai_questions', ['question' => 'Ինչ է HDI-ն', 'found' => true, 'input_tokens' => 100, 'cached_input_tokens' => 60, 'output_tokens' => 50]);
     }
 
-    public function test_off_topic_long_answers_score_below_passing(): void
+    public function test_each_course_sends_only_its_own_text(): void
     {
-        $data = app(CourseAssistant::class)->evaluate(str_repeat('Այսօր եղանակը շատ գեղեցիկ է։ ', 8));
+        $other = $this->course(6, self::TEXT_6);
+        $this->fakeOpenAi(['course_answer' => [$this->answered(), $this->answered('1992 թ.')]]);
 
-        $this->assertLessThan(60, $data['total_score_awarded']);
-        $this->assertSame('Անբավարար', $data['grade_level']);
+        $this->ask('Ինչ է համաթիվը')->assertOk();
+        $this->ask('Երբ է կայացել Ռիոյի համաժողովը', $other)->assertOk()->assertJsonPath('answer', '1992 թ.');
+
+        [[$first], [$second]] = Http::recorded();
+        $this->assertSame(self::TEXT_8, $this->sentContext($first)['course_material'][0]['text']);
+        $this->assertSame(self::TEXT_6, $this->sentContext($second)['course_material'][0]['text']);
+        $this->assertDatabaseHas('ai_questions', ['course_id' => $other->id, 'answer' => '1992 թ.']);
     }
 
-    public function test_model_scores_are_clamped_to_the_rubric_and_resummed(): void
+    public function test_an_oversized_text_falls_back_to_keyword_excerpts(): void
     {
-        config([
-            'services.openai.key' => 'sk-test',
-            'services.openai.model' => 'gpt-6-luna',
-            'services.openai.reasoning_effort' => 'medium',
-        ]);
-        $this->fakeOpenAi([
-            'total_score_awarded' => 500,
-            'max_total_score' => 500,
-            'summary_feedback_armenian' => 'լավ',
-            'actionable_tips_armenian' => 'շարունակեք',
-            'criterion_breakdown' => [
-                ['criterion_id' => 'understanding', 'points_earned' => 99, 'max_points' => 99, 'reasoning_armenian' => 'a'],
-                ['criterion_id' => 'connections', 'points_earned' => -5, 'max_points' => 25, 'reasoning_armenian' => 'b'],
-                ['criterion_id' => 'example_measure', 'points_earned' => 10, 'max_points' => 25, 'reasoning_armenian' => 'c'],
-            ],
-        ]);
+        config(['scorm.context.full_text_max_tokens' => 10]);
+        $this->fakeOpenAi(['course_answer' => [$this->answered()]]);
 
-        $result = app(CourseAssistant::class)->evaluate(self::LONG_ANSWER);
-        Http::assertSent(fn ($request) => $request->url() === 'https://api.openai.com/v1/responses'
-            && $request['model'] === 'gpt-6-luna'
-            && $request['reasoning']['effort'] === 'medium'
-            && $request['text']['format']['strict'] === true
-            && $request['max_output_tokens'] === 16000
-            && ! isset($request['temperature'])
-            && ! isset($request['top_p'])
-            && ! isset($request['max_tokens']));
-        $this->assertSame(40.0, $result['total_score_awarded']);
-        $this->assertSame(100, $result['max_total_score']);
-        $this->assertSame(30, $result['criterion_breakdown'][0]['points_earned']);
-        $this->assertSame(0, $result['criterion_breakdown'][1]['points_earned']);
+        $this->ask('Ինչ է մարդկային զարգացման համաթիվը')->assertOk();
+        $material = $this->sentContext(Http::recorded()[0][0])['course_material'];
+        $this->assertStringContainsString('Մարդկային զարգացման համաթիվը', json_encode($material, JSON_UNESCAPED_UNICODE));
+
+        // Nothing in the text matches, so no model call is made and nothing is counted.
+        $this->ask('Ով է Մեսսին')->assertOk()->assertJsonPath('answer', CourseAssistant::NOT_FOUND_ANSWER)->assertJsonPath('questions_remaining', 9);
+        Http::assertSentCount(1);
     }
 
-    public function test_a_failed_model_evaluation_falls_back_to_the_rubric(): void
+    public function test_an_answer_the_course_does_not_contain_is_logged_but_not_counted(): void
     {
-        config(['services.openai.key' => 'sk-test']);
-        Http::fake(['api.openai.com/*' => Http::response(['error' => ['type' => 'server_error']], 500)]);
+        $this->fakeOpenAi(['course_answer' => [['answer' => 'Դասընթացի նյութում այս մասին տեղեկություն չկա։', 'found' => false]]]);
 
-        $result = app(CourseAssistant::class)->evaluate(self::LONG_ANSWER);
-        $this->assertSame(85, $result['total_score_awarded']);
-        $this->assertStringContainsString('տեղային գնահատում', $result['notice']);
+        $this->ask('Որն է Հայաստանի մայրաքաղաքը')->assertOk()
+            ->assertJsonPath('answer', CourseAssistant::NOT_FOUND_ANSWER)
+            ->assertJsonPath('questions_remaining', 10);
+
+        $this->assertSame(0, $this->learner->fresh()->ai_questions_used);
+        $this->assertDatabaseHas('ai_questions', ['question' => 'Որն է Հայաստանի մայրաքաղաքը', 'found' => false]);
+    }
+
+    public function test_the_tenth_question_is_the_last_and_further_ones_make_no_api_call(): void
+    {
+        $this->withoutMiddleware(ThrottleRequests::class);
+        $this->fakeOpenAi(['course_answer' => array_fill(0, 10, $this->answered())]);
+
+        for ($i = 1; $i <= 10; $i++) {
+            $this->ask("Ինչ է համաթիվը $i")->assertOk()->assertJsonPath('questions_remaining', 10 - $i);
+        }
+
+        $this->ask('Ինչ է համաթիվը 11')->assertForbidden()->assertJsonPath('questions_remaining', 0);
+        Http::assertSentCount(10);
+        $this->assertSame(10, $this->learner->fresh()->ai_questions_used);
+        $this->assertSame(10, AiQuestion::where('found', true)->count());
+    }
+
+    public function test_a_parallel_request_cannot_use_a_question_that_is_already_reserved(): void
+    {
+        $this->learner->forceFill(['ai_questions_used' => 9])->save();
+        $nested = false;
+        Http::fake(function () use (&$nested) {
+            if (! $nested) {
+                $nested = true;
+                $this->ask('Ինչ է ոտնահետքը')->assertForbidden();
+            }
+
+            return Http::response($this->envelope($this->answered()));
+        });
+
+        $this->ask('Ինչ է համաթիվը')->assertOk()->assertJsonPath('questions_remaining', 0);
+        Http::assertSentCount(1);
+        $this->assertSame(10, $this->learner->fresh()->ai_questions_used);
+    }
+
+    public function test_api_errors_timeouts_and_a_missing_key_never_use_a_question(): void
+    {
+        $error = fn () => Http::response(['error' => ['code' => 'server_error', 'message' => 'boom']], 500);
+        $this->fakeOpenAi(['course_answer' => [
+            $error, $error, // the request and its quick retry
+            fn () => throw new ConnectionException('cURL error 28: Operation timed out'),
+            fn () => throw new ConnectionException('cURL error 28: Operation timed out'),
+            fn () => Http::response(['error' => ['code' => 'insufficient_quota', 'message' => 'quota']], 429),
+            fn () => Http::response($this->envelope($this->answered(''))),
+            $error, $this->answered(), // a single transient error is retried and succeeds
+        ]]);
+
+        for ($i = 0; $i < 4; $i++) {
+            $this->ask('Ինչ է համաթիվը')->assertStatus(503)
+                ->assertJsonPath('error', 'AI ծառայությունը ժամանակավորապես անհասանելի է։ Փորձեք կրկին․ այս հարցը չի հաշվվել։')
+                ->assertJsonPath('questions_remaining', 10);
+        }
+        // The last question succeeding proves every queued reply was used in order, retries included.
+        // Http::recorded() leaves out the two connection failures, so 6 of the 8 calls are listed.
+        $this->ask('Ինչ է համաթիվը')->assertOk()->assertJsonPath('questions_remaining', 9);
+        Http::assertSentCount(6);
+
+        config(['services.openai.key' => null]);
+        $this->ask('Ինչ է համաթիվը')->assertStatus(503)->assertJsonPath('questions_remaining', 9);
+        Http::assertSentCount(6);
+        $this->assertSame(1, AiQuestion::count());
     }
 
     public function test_assistant_endpoints_are_rate_limited_per_client(): void
     {
-        config(['app.debug' => false]);
-
         for ($i = 0; $i < 20; $i++) {
-            $this->postJson('/api/scorm/qa-assistant', ['student_question' => ' '])->assertStatus(400);
+            $this->postJson(self::ENDPOINT, ['student_question' => ' '])->assertStatus(400);
         }
 
-        $this->postJson('/api/scorm/qa-assistant', ['student_question' => ' '])
+        $this->postJson(self::ENDPOINT, ['student_question' => ' '])
             ->assertStatus(429)
-            ->assertJsonPath('error', 'Հարցումների սահմանաչափը լրացել է։ Սպասեք մեկ րոպե և փորձեք կրկին։');
+            ->assertJsonPath('error', 'Հարցումների սահմանաչափը լրացել է։ Սպասեք և փորձեք կրկին ավելի ուշ։');
     }
 
-    public function test_unexpected_api_errors_hide_details_outside_debug_mode(): void
+    public function test_unexpected_errors_release_the_question_and_hide_details_outside_debug_mode(): void
     {
-        config(['app.debug' => false]);
-        $this->app->bind(CourseAssistant::class, fn () => throw new RuntimeException('secret detail'));
+        $this->app->bind(CourseAssistant::class, fn () => new class extends CourseAssistant
+        {
+            public function __construct() {}
 
-        $this->postJson('/api/scorm/qa-assistant', ['student_question' => 'ինդիկատոր'])
-            ->assertStatus(500)
-            ->assertExactJson(['error' => 'Հարցումը հնարավոր չեղավ մշակել։']);
+            public function answer(ScormCourse $course, string $question, array $material): array
+            {
+                throw new RuntimeException('secret detail');
+            }
+        });
+
+        $this->ask('Ինչ է համաթիվը')->assertStatus(500)->assertExactJson(['error' => 'Հարցումը հնարավոր չեղավ մշակել։']);
+        $this->assertSame(0, $this->learner->fresh()->ai_questions_used);
     }
 }

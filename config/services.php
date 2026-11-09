@@ -38,7 +38,10 @@ return [
     'openai' => [
         'key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'gpt-6-luna'),
+        // Assignment grading and its authorship check: careful reasoning keeps scores consistent.
         'reasoning_effort' => env('OPENAI_REASONING_EFFORT', 'medium'),
+        // Course questions: answering from text the model already has needs less.
+        'qa_reasoning_effort' => env('OPENAI_QA_REASONING_EFFORT', 'low'),
         'timeout' => (int) env('OPENAI_TIMEOUT', 45),
         'question_limit' => (int) env('AI_QUESTION_LIMIT', 10),
         'question_max_length' => (int) env('AI_QUESTION_MAX_LENGTH', 100),

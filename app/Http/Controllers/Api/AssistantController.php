@@ -55,10 +55,10 @@ class AssistantController extends Controller
             return $this->limitReached();
         }
 
-        $excerpts = $this->search->relevant($course, $question);
+        $material = $this->search->relevant($course, $question);
 
         // Nothing to send, so no AI call is made and no question is used.
-        if ($excerpts === []) {
+        if ($material === []) {
             return response()->json([
                 'answer' => CourseAssistant::NOT_FOUND_ANSWER,
                 'questions_remaining' => $user->aiQuestionsRemaining(),
@@ -71,9 +71,20 @@ class AssistantController extends Controller
 
         // Only an answer that was generated and recorded may keep the question.
         try {
-            $result = $this->assistant->answer($course, $question, $excerpts);
+            $result = $this->assistant->answer($course, $question, $material);
 
-            // The excerpts turned out not to hold the answer: as promised in the UI, it isn't counted.
+            AiQuestion::create([
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+                'question' => $question,
+                'answer' => $result['answer'],
+                'found' => $result['found'],
+                'input_tokens' => $result['input_tokens'],
+                'cached_input_tokens' => $result['cached_input_tokens'],
+                'output_tokens' => $result['output_tokens'],
+            ]);
+
+            // The course doesn't hold the answer: as promised in the UI, the question isn't counted.
             if (! $result['found']) {
                 $user->releaseAiQuestion();
 
@@ -82,15 +93,6 @@ class AssistantController extends Controller
                     'questions_remaining' => $user->aiQuestionsRemaining(),
                 ]);
             }
-
-            AiQuestion::create([
-                'user_id' => $user->id,
-                'course_id' => $course->id,
-                'question' => $question,
-                'answer' => $result['answer'],
-                'input_tokens' => $result['input_tokens'],
-                'output_tokens' => $result['output_tokens'],
-            ]);
         } catch (OpenAiRequestFailed $e) {
             $user->releaseAiQuestion();
             Log::error('AI Q&A error: '.($e->errorCode ?? $e->getMessage()));

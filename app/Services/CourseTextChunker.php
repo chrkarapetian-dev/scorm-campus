@@ -8,6 +8,12 @@ class CourseTextChunker
     /** Armenian "։" and, as these texts often use it, ":" end sentences alongside the usual marks. */
     private const SENTENCE_END = '[։:.?!…]';
 
+    /** The whole source as cleaned paragraphs, one per line: what the model reads when the course fits its budget. */
+    public function text(string $path): string
+    {
+        return implode("\n", array_column($this->paragraphs($path), 0));
+    }
+
     /** @return list<array{heading: string, text: string, terms: array<string, int>, length: int}> */
     public function chunk(string $path): array
     {

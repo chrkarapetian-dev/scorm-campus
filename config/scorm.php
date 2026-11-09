@@ -15,15 +15,25 @@ return [
     // Internal Nginx location for bundled course files. Unset, PHP streams them itself.
     'x_accel_prefix' => env('COURSES_X_ACCEL_PREFIX'),
 
-    // Tokens are estimated: Armenian runs at about 2.5 characters per token.
+    // Tokens are estimated from characters. The course texts measured 2.9–3.8 characters per
+    // gpt-6-luna token (3.4 on average), so 3.0 errs on the high side.
     'chunks' => [
         'max_tokens' => 700,
         'overlap_tokens' => 80,
-        'chars_per_token' => 2.5,
+        'chars_per_token' => 3.0,
     ],
 
+    // A course whose whole text fits this many (estimated) tokens is sent to the model in full:
+    // the largest bundled course is about 8,600 tokens. The text sits in the cached prompt prefix,
+    // so repeat requests pay a tenth of the input price for it. Larger texts fall back to the
+    // keyword search below.
+    'context' => [
+        'full_text_max_tokens' => (int) env('AI_FULL_TEXT_MAX_TOKENS', 20000),
+    ],
+
+    // Fallback for texts over the budget above.
     'search' => [
-        'max_chunks' => (int) env('AI_MAX_CHUNKS', 4),
+        'max_chunks' => (int) env('AI_MAX_CHUNKS', 6),
         // Share of the question's words a chunk must contain to count as relevant.
         'min_coverage' => 0.5,
         // Chunks scoring below this fraction of the best chunk are left out.
@@ -32,7 +42,7 @@ return [
 
     'assignments' => [
         'ai_threshold' => max(0, min(100, (int) env('ASSIGNMENT_AI_THRESHOLD', 50))),
-        'max_chunks' => 6,
+        'max_chunks' => 8,
         'questions' => [
             3 => 'Ինչպե՞ս է ձևավորվել կայուն զարգացման հայեցակարգը։ Դասանյութի հիման վրա ներկայացրեք կազմակերպչական գործընթացի հիմնական փուլերը և բացատրեք դրանց կապը։',
             4 => 'Ի՞նչ են նշանակում «կայունություն» և «կայուն զարգացում» հասկացությունները։ Դասանյութի հիման վրա բացատրեք դրանց կապն ու տարբերությունը՝ բերելով հիմնավորված օրինակ։',
