@@ -21,8 +21,10 @@ entries were cleared. Browser localStorage progress cannot be copied with the da
 
 Course packages live in `/srv/scorm-campus/courses`, mounted read-only into both
 containers. Course texts in `storage/course_texts` are baked into the application image.
-Texts for courses 1, 2, 7 and 11 are missing from the source project. Their course
-packages remain playable, but their AI assistants need those texts.
+The active bundled courses are 3, 4, 5, 6, 8, 9 and 10. Courses 1, 2, 7 and 11
+have been retired: their catalogue and related learner records are deleted by
+migration, and their package directories must be removed from the host course
+directory as well. Seeders preserve the remaining course numbers and IDs.
 
 ## PhpStorm database connection
 
@@ -87,7 +89,7 @@ It keeps approximately fourteen days of encrypted backups in `/var/backups/scorm
 Each archive contains a consistent MySQL dump, uploaded application storage, production
 environment, source texts, deployment scripts/configuration, host proxy/backup units, Git
 revision, deployment patch and the course checksum manifest.
-The database, environment and uploaded storage are included; the 6.3 GB bundled course
+The database, environment and uploaded storage are included; the bundled course
 packages are separate and must also be retained off-server.
 
 Encryption uses OpenSSL AES-256-CBC with PBKDF2. The key is

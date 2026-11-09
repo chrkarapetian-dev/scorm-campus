@@ -6,11 +6,11 @@ return [
     // Unpacked packages. Mounted as a volume in Docker so courses survive rebuilds.
     'storage_path' => env('SCORM_STORAGE_PATH', storage_path('app/scorm')),
 
-    // Bundled Articulate courses (course1 … courseN) and their source texts (courseN.txt).
+    // Bundled Articulate courses (course{number}) and their source texts (course{number}.txt).
     // Both sit outside public/, so only the authenticated routes can reach them.
     'courses_path' => env('COURSES_PATH', storage_path('courses')),
     'texts_path' => env('COURSE_TEXTS_PATH', storage_path('course_texts')),
-    'bundled_course_count' => 11,
+    'bundled_course_numbers' => [3, 4, 5, 6, 8, 9, 10],
 
     // Internal Nginx location for bundled course files. Unset, PHP streams them itself.
     'x_accel_prefix' => env('COURSES_X_ACCEL_PREFIX'),
