@@ -162,7 +162,7 @@ class ScormPackageImporter
 
         $launch = null;
         if ($resource !== null && preg_match('/\bhref=["\']([^"\']+)["\']/i', $resource, $m)) {
-            $launch = $m[1];
+            $launch = ($manifestDir === '.' ? '' : $manifestDir.'/').$m[1];
         }
 
         if ($launch === null) {
@@ -174,7 +174,8 @@ class ScormPackageImporter
             }
         }
 
-        $launch = $launch === null ? '' : $this->normalizePath(($manifestDir === '.' ? '' : $manifestDir.'/').$launch);
+        // Manifest hrefs are relative to the manifest; fallback entries already use archive paths.
+        $launch = $launch === null ? '' : $this->normalizePath($launch);
 
         // Articulate's launcher.html opens index_lms.html in a popup. Popups launched
         // automatically from the embedded course frame are blocked by browsers, so

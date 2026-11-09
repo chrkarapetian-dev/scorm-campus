@@ -204,6 +204,28 @@ class AssistantTest extends TestCase
         $this->assertSame(1, AiQuestion::count());
     }
 
+    public function test_malformed_answer_fields_are_rejected_without_using_a_question(): void
+    {
+        $this->withoutMiddleware(ThrottleRequests::class);
+        $invalid = [
+            ['answer' => 'Պատասխան առանց found դաշտի։'],
+            ['answer' => 'Պատասխան։', 'found' => 'false'],
+            ['answer' => 'Պատասխան։', 'found' => 0],
+            ['answer' => 'Պատասխան։', 'found' => null],
+            ['answer' => 123, 'found' => true],
+            ['answer' => ['text' => 'Պատասխան։'], 'found' => true],
+        ];
+        $this->fakeOpenAi(['course_answer' => $invalid]);
+
+        foreach ($invalid as $_) {
+            $this->ask('Ինչ է համաթիվը')->assertStatus(503)->assertJsonPath('questions_remaining', 10);
+        }
+
+        $this->assertDatabaseCount('ai_questions', 0);
+        $this->assertSame(0, $this->learner->fresh()->ai_questions_used);
+        Http::assertSentCount(count($invalid));
+    }
+
     public function test_assistant_endpoints_are_rate_limited_per_client(): void
     {
         for ($i = 0; $i < 20; $i++) {

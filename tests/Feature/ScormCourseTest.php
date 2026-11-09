@@ -94,6 +94,23 @@ class ScormCourseTest extends TestCase
         ]))->assertCreated()->assertJsonFragment(['launch' => 'pkg/index_lms.html']);
     }
 
+    public function test_nested_package_without_a_launch_href_uses_its_archive_path(): void
+    {
+        $this->upload($this->package([
+            'pkg/imsmanifest.xml' => '<manifest><resources/></manifest>',
+            'pkg/story.html' => '<h1>Դաս</h1>',
+        ]))->assertCreated()->assertJsonPath('launch', 'pkg/story.html');
+    }
+
+    public function test_non_string_upload_title_is_rejected_before_import(): void
+    {
+        config(['app.debug' => false]);
+        $this->upload($this->package([
+            'imsmanifest.xml' => $this->manifest(), 'index_lms.html' => 'x',
+        ]), ['title' => ['invalid']])->assertUnprocessable()->assertJsonStructure(['error']);
+        $this->assertDatabaseCount('scorm_courses', 0);
+    }
+
     public function test_a_package_without_a_manifest_is_rejected(): void
     {
         $this->upload($this->package(['index.html' => 'x']))

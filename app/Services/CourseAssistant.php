@@ -61,7 +61,12 @@ class CourseAssistant
             config('services.openai.qa_reasoning_effort'),
         );
 
-        $answer = trim((string) ($response['data']['answer'] ?? ''));
+        $data = $response['data'];
+        if (! is_string($data['answer'] ?? null) || ! is_bool($data['found'] ?? null)) {
+            throw new OpenAiRequestFailed('The AI service returned malformed answer fields.', 'malformed_answer');
+        }
+
+        $answer = trim($data['answer']);
 
         if ($answer === '') {
             throw new OpenAiRequestFailed('The AI service returned an empty answer.', 'empty_answer');
@@ -69,7 +74,7 @@ class CourseAssistant
 
         return [
             'answer' => $answer,
-            'found' => ($response['data']['found'] ?? true) !== false,
+            'found' => $data['found'],
         ] + $response['usage'];
     }
 }

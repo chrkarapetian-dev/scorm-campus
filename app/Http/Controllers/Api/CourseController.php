@@ -47,8 +47,13 @@ class CourseController extends Controller
             return response()->json(['error' => 'Փոխանցվող ֆայլը գերազանցում է թույլատրելի չափը։'], 413);
         }
 
+        $title = $request->input('title');
+        if ($title !== null && ! is_string($title)) {
+            return response()->json(['error' => 'Դասընթացի անվանումը պետք է լինի տեքստ։'], 422);
+        }
+
         try {
-            $course = $importer->import($file, $request->input('title'));
+            $course = $importer->import($file, $title);
         } catch (InvalidScormPackage $e) {
             return response()->json(['error' => $e->getMessage()], 400);
         }
