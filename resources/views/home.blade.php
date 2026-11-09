@@ -20,6 +20,7 @@
             @include('partials.view-catalog')
             @include('partials.view-course')
             @include('partials.view-progress')
+            @include('partials.view-certificates')
         </main>
     </div>
 

@@ -4,7 +4,7 @@ const { courses, sections, assignmentMessages: assignmentText } = window.usum;
 
 const STORE = 'usum-topic8-progress-v1';
 const FLASH_KEY = 'usum-flash';
-const VIEW_LABELS = { home: 'Գլխավոր', library: 'Գլխավոր', progress: 'Իմ առաջընթացը' };
+const VIEW_LABELS = { home: 'Գլխավոր', library: 'Գլխավոր', progress: 'Իմ առաջընթացը', certificates: 'Վկայականներ' };
 
 
 const $ = id => document.getElementById(id);
@@ -195,9 +195,10 @@ function closePlayer() {
 // ---- Views -----------------------------------------------------------------
 
 function showView(name) {
-    $('view-library').hidden = name === 'progress';
+    $('view-library').hidden = name !== 'library' && name !== 'home';
     $('view-home').hidden = name !== 'home';
     $('view-progress').hidden = name !== 'progress';
+    $('view-certificates').hidden = name !== 'certificates';
 
     document.querySelectorAll('[data-view]').forEach(link => {
         if (link.dataset.view === (name === 'home' ? 'library' : name)) link.setAttribute('aria-current', 'page');
@@ -600,6 +601,26 @@ drop.addEventListener('drop', event => {
 });
 
 // ---- Page wiring -----------------------------------------------------------------
+
+const courseCards = [...document.querySelectorAll('[data-course-title]')];
+function filterCourses() {
+    const query = $('course-search').value.trim().normalize('NFC').toLocaleLowerCase('hy');
+    let matches = 0;
+
+    courseCards.forEach(card => {
+        card.hidden = !card.dataset.courseTitle.normalize('NFC').toLocaleLowerCase('hy').includes(query);
+        if (!card.hidden) matches++;
+    });
+
+    $('course-search-empty').hidden = !query || matches > 0;
+    if ($('courses-coming-soon')) $('courses-coming-soon').hidden = query.length > 0;
+}
+
+$('course-search').addEventListener('input', filterCourses);
+$('course-search-form').addEventListener('submit', event => {
+    event.preventDefault();
+    filterCourses();
+});
 
 document.querySelectorAll('[data-view]').forEach(link => link.addEventListener('click', () => showView(link.dataset.view)));
 

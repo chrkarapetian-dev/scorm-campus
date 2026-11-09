@@ -7,9 +7,18 @@
         </div>
     </div>
 
+    <form id="course-search-form" role="search" class="flex items-center w-full max-w-[420px] h-[42px] mb-[25px] border border-field-line rounded-[8px] bg-field focus-within:border-accent-bright focus-within:shadow-[0_0_14px_#ff174422]">
+        <label for="course-search" class="sr-only">Փնտրել դասընթացներ</label>
+        <input id="course-search" type="search" placeholder="Փնտրել դասընթացներ…" autocomplete="off" class="min-w-0 flex-1 h-full bg-transparent border-0 pl-[14px] pr-2 text-[12px] text-ink rounded-[8px]">
+        <button type="submit" aria-label="Փնտրել" class="grid place-items-center w-[42px] h-[40px] shrink-0 rounded-[7px] text-accent-pale hover:bg-raised hover:text-white">
+            <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
+        </button>
+    </form>
+    <p id="course-search-empty" role="status" hidden class="text-[12px] text-muted mb-[25px]">Համապատասխան դասընթացներ չեն գտնվել։</p>
+
     <div class="grid gap-[18px] items-stretch auto-rows-fr grid-cols-[repeat(auto-fill,minmax(min(100%,350px),1fr))]">
         @forelse ($courses as $course)
-            <article class="flex flex-col min-h-0 overflow-hidden border border-line-strong rounded-[13px] bg-surface shadow-[0_10px_35px_#0002]">
+            <article data-course-title="{{ $course->title }}" class="flex flex-col min-h-0 overflow-hidden border border-line-strong rounded-[13px] bg-surface shadow-[0_10px_35px_#0002]">
                 <div class="relative h-[218px] shrink-0 overflow-hidden p-[23px] flex flex-col justify-between bg-[radial-gradient(ellipse_at_55%_52%,#9c1ad4_0,#48146b_34%,#1a0c27_72%,#10091a_100%)] max-compact:h-[190px] before:box-content before:content-[''] before:absolute before:z-[1] before:pointer-events-none before:border before:border-[#d4e8d122] before:rounded-[50%] before:w-[310px] before:h-[160px] before:left-1/2 before:top-[53%] before:[transform:translate(-50%,-50%)_rotate(-28deg)] after:box-content after:content-[''] after:absolute after:z-[1] after:pointer-events-none after:border after:border-[#d4e8d122] after:rounded-[50%] after:w-[230px] after:h-[330px] after:left-1/2 after:top-[53%] after:[transform:translate(-50%,-50%)_rotate(35deg)]">
                     <img src="{{ asset('images/sustainable-development-poster.svg') }}" alt="Կայուն զարգացման թեմայով դասընթացի պաստառ" class="absolute inset-0 w-full h-full object-cover opacity-[.82]">
                     <span class="relative z-[2] text-[9px] tracking-[.16em] text-[#f5f5f1] font-bold py-2 px-[10px] border border-[#ffb2d966] bg-[#160a22cc] rounded-[5px] self-start">ARTICULATE · STORYLINE</span>
@@ -30,7 +39,7 @@
         @endforelse
 
         @if ($courses->isNotEmpty())
-            <article class="min-h-[310px] border border-dashed border-line-strong rounded-[13px] bg-surface flex flex-col items-start justify-center p-[30px]">
+            <article id="courses-coming-soon" class="min-h-[310px] border border-dashed border-line-strong rounded-[13px] bg-surface flex flex-col items-start justify-center p-[30px]">
                 <div class="w-[42px] h-[42px] border border-[#8c316a] rounded-[50%] grid place-items-center text-[#ff5b94] text-[25px] mb-[22px]">＋</div>
                 <x-eyebrow>ՇՈՒՏՈՎ</x-eyebrow>
                 <h2 class="font-display font-bold text-[19px] my-2">Ավելի շատ դասընթացներ</h2>

@@ -7,14 +7,23 @@
 @endphp
 
 <aside class="h-screen sticky top-0 bg-[linear-gradient(180deg,#0a0618_0%,#10071d_62%,#17051a_100%)] border-r border-[#ff1744] shadow-[1px_0_18px_#ff174455] py-[29px] px-[17px] flex flex-col max-compact:py-[18px] max-compact:px-[7px]">
-    <a href="#home" aria-label="Ուսում գլխավոր էջ" class="flex items-center gap-[11px] text-ink font-display font-extrabold text-[19px] tracking-[-.03em] no-underline px-[11px] pb-[45px] max-compact:px-2 max-compact:pb-[37px]">
-        <span class="grid place-items-center w-[31px] h-[31px] rounded-[10px] bg-[linear-gradient(135deg,#ff1744,#c90062)] shadow-[0_0_16px_#ff174466] text-white font-armenian font-extrabold text-[14px]">Ու</span>
-        <span class="max-compact:hidden">ուսում</span>
-    </a>
+    <div class="flex items-center gap-[11px] pb-[45px] max-compact:flex-col max-compact:gap-2 max-compact:pb-[25px]">
+        <a href="https://www.ysu.am/" target="_blank" rel="noopener noreferrer" aria-label="Երևանի պետական համալսարան" class="flex items-center justify-center w-[112px] h-[52px] shrink-0 rounded-[6px] bg-[#0F3F76] p-[6px] focus-visible:outline-2 focus-visible:outline-accent-bright focus-visible:outline-offset-2 max-compact:w-[48px] max-compact:h-[32px] max-compact:p-[3px]">
+            <img src="{{ asset('images/ysu-logo.svg') }}" alt="Երևանի պետական համալսարան" width="158" height="67" class="w-full h-full object-contain">
+        </a>
+        <span aria-hidden="true" class="w-px h-[38px] shrink-0 bg-accent max-compact:w-[30px] max-compact:h-px"></span>
+        <a href="https://www.ucom.am/en" target="_blank" rel="noopener noreferrer" aria-label="Ucom" class="flex items-center justify-center w-[65px] h-[44px] shrink-0 rounded-[4px] focus-visible:outline-2 focus-visible:outline-accent-bright focus-visible:outline-offset-2 max-compact:w-[44px] max-compact:h-[28px]">
+            <img src="{{ asset('images/ucom-logo.svg') }}" alt="Ucom" width="433" height="211" class="w-full h-full object-contain">
+        </a>
+    </div>
     <div class="text-[10px] font-bold tracking-[.15em] text-caption px-3 pb-[13px] max-compact:hidden">ՈՒՍՈՒՄՆԱԿԱՆ ՏԱՐԱԾՔ</div>
     <nav class="grid gap-[5px]" aria-label="Հիմնական նավարկում">
         <button class="{{ $navLink }}" data-view="library" aria-current="page"><span class="{{ $navIcon }} {{ $iconGrid }}">▤</span> Գլխավոր</button>
         <button class="{{ $navLink }}" data-view="progress"><span class="{{ $navIcon }} {{ $iconClock }}">◷</span> Իմ առաջընթացը</button>
+        <button class="{{ $navLink }}" data-view="certificates" aria-label="Վկայականներ">
+            <span class="{{ $navIcon }}" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M7 7h10M7 11h4"/><circle cx="16" cy="14" r="3"/><path d="m14 17-1 5 3-2 3 2-1-5"/></svg></span>
+            Վկայականներ
+        </button>
     </nav>
     <div class="mt-auto border-t border-[#402047] pt-[17px] px-[11px] text-[#a494ae] text-[11px] leading-[1.7] max-compact:hidden">
         <span class="inline-block w-[7px] h-[7px] rounded-[50%] bg-accent mr-[7px] shadow-glow"></span> Ձեր ուսումնական տարածքը<br>պահպանվում է այս սարքում
