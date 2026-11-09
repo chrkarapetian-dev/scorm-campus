@@ -5,10 +5,26 @@
             <h1 class="font-display font-bold text-[32px] tracking-[-.04em] my-[7px] max-compact:text-[27px]">Իմ առաջընթացը</h1>
             <p class="text-[12px] text-muted">Առաջընթացը պահպանվում է ձեր հաշվում և հասանելի է այլ դիտարկիչներից։</p>
         </div>
-        <x-button variant="outline" id="reset-progress">Վերակայել առաջընթացը</x-button>
+        <x-button variant="outline" id="reset-progress" disabled>Վերակայել առաջընթացը</x-button>
     </div>
 
+    <div class="grid gap-2 mb-5 max-w-[640px] min-w-0">
+        <label for="progress-course-select" class="text-[12px] font-bold">Դասընթաց</label>
+        <select id="progress-course-select" aria-controls="progress-course-content" class="w-full min-w-0 text-[12px] text-ink bg-[#171d19] border border-[#29342c] rounded-[8px] py-3 px-[15px] focus:outline-none focus:border-[#c90062]" @disabled($courses->isEmpty())>
+            @forelse ($courses as $course)
+                <option value="{{ $course->id }}">{{ $course->title }}</option>
+            @empty
+                <option value="">Հասանելի դասընթացներ չկան։</option>
+            @endforelse
+        </select>
+    </div>
+    <p id="progress-no-courses" @if ($courses->isNotEmpty()) hidden @endif class="text-[12px] text-muted">Հասանելի դասընթացներ դեռ չկան։</p>
+    <div class="flex items-center gap-3 text-[12px] text-muted" role="status" aria-live="polite">
+        <span id="progress-load-status"></span>
+        <button id="progress-load-retry" type="button" hidden class="underline py-2">Կրկին փորձել</button>
+    </div>
     <p id="progress-save-status" role="status" class="text-[12px] text-muted"></p>
+    <div id="progress-course-content" hidden>
     <section id="progress-course-access" hidden class="flex justify-between items-center gap-5 mt-5 mb-6 py-5 px-[22px] border border-[#502445] rounded-[10px] bg-[linear-gradient(130deg,#1a0e25,#100819_62%,#210b20)] max-compact:items-start max-compact:flex-col max-compact:p-[17px]">
         <div>
             <x-eyebrow>ARTICULATE · STORYLINE</x-eyebrow>
@@ -53,4 +69,5 @@
             <div id="progress-answers" class="grid gap-3 min-w-0"></div>
         </div>
     </details>
+    </div>
 </div>

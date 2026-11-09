@@ -83,7 +83,7 @@ export class ProgressStore {
                     return;
                 }
                 this.saving = false;
-                this.onChange();
+                this.onChange(id, record.saved);
             }
         });
         return this.queue;
@@ -98,7 +98,7 @@ export class ProgressStore {
             record.saved = saved;
             record.runtime = { ...saved.scorm };
         }
-        this.onChange();
+        this.onChange(item.id, record.saved);
     }
     async clear(item) {
         await this.flush();
@@ -106,7 +106,7 @@ export class ProgressStore {
         const record = this.records.get(item.id);
         record.saved = await this.request(item.id, { revision: record.saved.revision, reset: true });
         record.runtime = {};
-        this.onChange();
+        this.onChange(item.id, record.saved);
     }
     install(item) {
         const get = key => this.get(item, key);

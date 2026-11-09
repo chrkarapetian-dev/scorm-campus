@@ -63,6 +63,35 @@ class ProgressTest extends TestCase
         $this->getJson('/api/scorm/progress/'.$second->id)->assertJsonPath('answers', []);
     }
 
+    public function test_reading_different_courses_preserves_answers_and_does_not_modify_progress(): void
+    {
+        $second = $this->course->replicate();
+        $second->id = str_repeat('b', 16);
+        $second->save();
+        $secondUrl = '/api/scorm/progress/'.$second->id;
+        $this->postJson($this->url, ['revision' => 0, 'runtime' => ['cmi.interactions.0.id' => 'q', 'cmi.interactions.0.student_response' => 'Առաջին պատասխան']])->assertOk();
+        $this->postJson($secondUrl, ['revision' => 0, 'runtime' => ['cmi.interactions.0.id' => 'q', 'cmi.interactions.0.student_response' => 'Երկրորդ պատասխան']])->assertOk();
+        $before = CourseProgress::with('answers')->orderBy('id')->get()->toArray();
+        foreach (range(1, 3) as $visit) {
+            $this->getJson($this->url)->assertOk()->assertJsonPath('answers.0.selected', 'Առաջին պատասխան');
+            $this->getJson($secondUrl)->assertOk()->assertJsonPath('answers.0.selected', 'Երկրորդ պատասխան');
+        }
+        $this->assertSame($before, CourseProgress::with('answers')->orderBy('id')->get()->toArray());
+        $this->assertDatabaseCount('course_answers', 2);
+        $this->course->update(['is_available' => false]);
+        $this->getJson($this->url)->assertNotFound();
+    }
+
+    public function test_course_selector_contains_only_available_courses_and_handles_an_empty_catalogue(): void
+    {
+        $this->withoutVite();
+        $this->get('/')->assertOk()->assertSee('id="progress-course-select"', false)
+            ->assertViewHas('courses', fn ($courses) => $courses->pluck('id')->all() === [$this->course->id]);
+        $this->course->update(['is_available' => false]);
+        $this->get('/')->assertOk()->assertSee('Հասանելի դասընթացներ չկան։')
+            ->assertViewHas('courses', fn ($courses) => $courses->isEmpty());
+    }
+
     public function test_stale_writes_and_stale_resets_cannot_overwrite_progress(): void
     {
         $this->postJson($this->url, ['revision' => 0, 'runtime' => ['cmi.suspend_data' => 'first']])->assertOk();

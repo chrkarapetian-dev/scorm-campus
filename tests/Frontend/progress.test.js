@@ -101,3 +101,18 @@ test('course stores and reset are isolated and discard resume data only after su
     assert.equal(store.get(course, 'cmi.core.entry'), 'ab-initio');
     assert.equal(store.get(other, 'cmi.suspend_data'), 'resume');
 });
+
+test('acknowledged save notifications identify the saved course for the independent progress view', async () => {
+    const other = { id: 'course-b' };
+    const updates = [];
+    store.onChange = (id, saved) => updates.push([id, saved]);
+    global.fetch = async () => response(summary());
+    await store.load([course, other]);
+    global.fetch = async (url, options) => response(summary(1, JSON.parse(options.body).runtime));
+    store.set(other, 'cmi.suspend_data', 'B resume');
+    await store.flush();
+    assert.equal(updates.length, 1);
+    assert.equal(updates[0][0], 'course-b');
+    assert.equal(updates[0][1].scorm['cmi.suspend_data'], 'B resume');
+    assert.equal(store.read(course).revision, 0);
+});

@@ -1,14 +1,16 @@
 import { createStorylineTracker } from './storyline.js';
 import { ProgressStore } from './progress.js';
+import { ProgressSelection } from './progress-selection.js';
 
 async function main() {
 
 const { courses, sections, assignmentMessages: assignmentText } = window.usum;
-const progressStore = new ProgressStore(() => {
-    if (!document.getElementById('view-progress').hidden) renderAnalytics();
+const progressStore = new ProgressStore((courseId, progress) => {
+    if (!progressSelection.accept(courseId, progress) && !document.getElementById('view-progress').hidden) renderAnalytics();
     if (progressStore.error) toast(progressStore.error.message);
 });
-await progressStore.load(courses);
+// A failed preload must not disable navigation or the progress view's own retry.
+await progressStore.load(courses).catch(() => {});
 
 const STORE = 'usum-topic8-progress-v1';
 const FLASH_KEY = 'usum-flash';
@@ -66,6 +68,10 @@ let reflectionCourseId = null;
 const reflections = new Map();
 let selectedFile = null;
 let toastTimer;
+let resettingProgress = false;
+const progressSelection = new ProgressSelection(courses, course => progressStore.request(course.id), () => {
+    if (!$('view-progress').hidden) renderAnalytics();
+});
 
 const tracker = createStorylineTracker({
     sections,
@@ -212,8 +218,15 @@ function showView(name) {
 
     $('crumb-current').textContent = VIEW_LABELS[name];
 
-    if (name === 'progress') { renderAnalytics(); progressStore.refresh(activeCourse).catch(error => toast(error.message)); }
-    if (name === 'home') renderFeaturedCourse(activeCourse);
+    if (name === 'progress') progressSelection.open();
+    if (name === 'home') {
+        const item = activeCourse;
+        if (item && !progressStore.records.has(item.id)) {
+            progressStore.load([item]).then(() => {
+                if (activeCourse?.id === item.id && !$('view-home').hidden) renderFeaturedCourse(item);
+            }).catch(error => toast(error.message));
+        } else renderFeaturedCourse(item);
+    }
 
     if (name === 'home') $('view-home').scrollIntoView();
     else window.scrollTo(0, 0);
@@ -252,7 +265,18 @@ function sectionRow(section, progress) {
 }
 
 function renderAnalytics() {
-    const item = activeCourse, progress = tracker.read(item);
+    const { course: item, progress, loading, error } = progressSelection.state;
+    $('progress-course-select').value = item?.id || '';
+    $('progress-course-select').disabled = courses.length === 0;
+    $('progress-course-content').hidden = !progress || loading || Boolean(error);
+    $('progress-course-content').setAttribute('aria-busy', String(loading));
+    $('progress-no-courses').hidden = courses.length > 0;
+    $('progress-load-status').textContent = loading ? 'Առաջընթացը բեռնվում է…'
+        : error ? 'Առաջընթացը բեռնել չհաջողվեց։ Կրկին փորձեք։' : '';
+    $('progress-load-retry').hidden = !error;
+    $('reset-progress').disabled = !item || !progress || loading || Boolean(error) || resettingProgress;
+    $('progress-save-status').textContent = progressStore.error?.message || '';
+    if (!progress || loading || error) return;
     const done = progress.completedSections;
     const score = progress.quiz?.score ?? progress.quizScore?.score;
     const status = progress.status;
@@ -261,7 +285,11 @@ function renderAnalytics() {
 
     if (item) {
         $('progress-course-title').textContent = item.title;
-        $('progress-open-course').onclick = () => showView('home');
+        $('progress-open-course').onclick = () => {
+            if (activeCourse?.id !== item.id) closePlayer(false);
+            activeCourse = item;
+            showView('home');
+        };
     }
 
     let courseStatus = status && status !== 'not_started' ? 'Ընթացքի մեջ' : 'Չի սկսվել';
@@ -272,7 +300,7 @@ function renderAnalytics() {
     const totalTime = progress.scorm['cmi.core.total_time'];
 
     $('stat-sections').textContent = `${done}/${progress.totalSections}`;
-    $('stat-sections-note').textContent = item?.title || 'SCORM դասընթաց';
+    $('stat-sections-note').textContent = `Ընդհանուր առաջընթաց՝ ${progress.completionPercent}%`;
     $('stat-quiz').textContent = score === undefined || score === null ? '—' : `${score}%`;
     $('stat-quiz-note').textContent = progress.quiz
         ? (progress.quiz.passed ? '70% անցողիկ միավորը հաղթահարված է' : '70% անցողիկ միավորը դեռ չի հաղթահարվել')
@@ -667,18 +695,35 @@ document.querySelectorAll('[data-open-course]').forEach(button => button.addEven
 
 $('close-player').addEventListener('click', closePlayer);
 
+$('progress-course-select').addEventListener('change', event => {
+    $('progress-answer-review').open = false;
+    progressSelection.select(event.target.value);
+});
+$('progress-load-retry').addEventListener('click', () => progressSelection.select(progressSelection.state.course?.id));
+
 $('reset-progress').addEventListener('click', async () => {
-    if (!confirm('Վերակայե՞լ այս դասընթացի պահպանված առաջընթացը։')) return;
+    const item = progressSelection.state.course;
+    if (!item || resettingProgress || !progressSelection.state.progress) return;
+    if (!confirm(`Վերակայե՞լ «${item.title}» դասընթացի պահպանված առաջընթացը։`)) return;
 
-    if (!activeCourse) return;
-
-    closePlayer(false);
-    $('featured-scorm-frame').src = 'about:blank';
-    loadedFeaturedId = null;
-    try { await tracker.clear(activeCourse); } catch (error) { toast(error.message); return; }
-
+    resettingProgress = true;
     renderAnalytics();
-    toast('Առաջընթացը վերակայվել է։');
+    try {
+        if (!progressStore.records.has(item.id)) await progressStore.load([item]);
+        if (activeCourse?.id === item.id) {
+            closePlayer(false);
+            $('featured-scorm-frame').src = 'about:blank';
+            loadedFeaturedId = null;
+            await tracker.clear(item);
+        } else await progressStore.clear(item);
+        if (progressSelection.state.course?.id === item.id) await progressSelection.select(item.id);
+        toast('Առաջընթացը վերակայվել է։');
+    } catch (error) {
+        toast(error.message);
+    } finally {
+        resettingProgress = false;
+        renderAnalytics();
+    }
 });
 
 document.addEventListener('keydown', event => {
