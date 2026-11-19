@@ -16,5 +16,8 @@
     </header>
     <p id="progress-save-status" role="status"></p>
     <iframe id="course-frame" allow="fullscreen" data-src="{{ $course->launchUrl() }}" class="inline w-full h-[calc(100vh-58px)] border-0 bg-white"></iframe>
+    <div class="px-5">
+        <x-assignment-rubric />
+    </div>
 </body>
 </html>

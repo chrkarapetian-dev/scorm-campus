@@ -61,10 +61,6 @@
             <x-button id="evaluate-answer" disabled class="flex-none disabled:opacity-50 disabled:cursor-not-allowed max-compact:w-full">{{ __('assignment.submit') }}</x-button>
         </div>
 
-        <details class="my-[14px] border border-[#42264d] rounded-[8px] bg-raised py-3 px-[14px] text-muted">
-            <summary class="cursor-pointer text-[11px] font-bold text-accent-pale">{{ __('assignment.rubric') }}</summary>
-            <p class="text-[11px] leading-[1.8] mt-3">{{ __('assignment.rubric_description') }}</p>
-        </details>
         <p class="text-[11px] leading-[1.8] text-caption my-[10px]">{{ __('assignment.policy', ['threshold' => config('scorm.assignments.ai_threshold')]) }}</p>
         <p class="text-[10px] leading-[1.8] text-dim mb-[18px]">{{ __('assignment.disclaimer') }}</p>
         <div id="evaluation-result" aria-live="polite" class="empty:hidden"></div>
@@ -77,4 +73,8 @@
             <button id="assignment-history-more" type="button" hidden class="text-[11px] text-accent-pale mt-3 ml-4">{{ __('assignment.history_more') }}</button>
         </details>
     </section>
+
+    @if ($courses->isNotEmpty())
+        <x-assignment-rubric />
+    @endif
 </div>
