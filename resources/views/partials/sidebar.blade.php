@@ -7,13 +7,9 @@
 @endphp
 
 <aside class="h-screen sticky top-0 bg-[linear-gradient(180deg,#0a0618_0%,#10071d_62%,#17051a_100%)] border-r border-[#ff1744] shadow-[1px_0_18px_#ff174455] py-[29px] px-[17px] flex flex-col max-compact:py-[18px] max-compact:px-[7px]">
-    <div class="flex items-center gap-[11px] pb-[45px] max-compact:flex-col max-compact:gap-2 max-compact:pb-[25px]">
+    <div class="flex pb-[45px] max-compact:justify-center max-compact:pb-[25px]">
         <a href="https://www.ysu.am/" target="_blank" rel="noopener noreferrer" aria-label="Երևանի պետական համալսարան" class="flex items-center justify-center w-[112px] h-[52px] shrink-0 rounded-[6px] bg-[#0F3F76] p-[6px] focus-visible:outline-2 focus-visible:outline-accent-bright focus-visible:outline-offset-2 max-compact:w-[48px] max-compact:h-[32px] max-compact:p-[3px]">
             <img src="{{ asset('images/ysu-logo.svg') }}" alt="Երևանի պետական համալսարան" width="158" height="67" class="w-full h-full object-contain">
-        </a>
-        <span aria-hidden="true" class="w-px h-[38px] shrink-0 bg-accent max-compact:w-[30px] max-compact:h-px"></span>
-        <a href="https://www.ucom.am/en" target="_blank" rel="noopener noreferrer" aria-label="Ucom" class="flex items-center justify-center w-[65px] h-[44px] shrink-0 rounded-[4px] focus-visible:outline-2 focus-visible:outline-accent-bright focus-visible:outline-offset-2 max-compact:w-[44px] max-compact:h-[28px]">
-            <img src="{{ asset('images/ucom-logo.svg') }}" alt="Ucom" width="433" height="211" class="w-full h-full object-contain">
         </a>
     </div>
     <div class="text-[10px] font-bold tracking-[.15em] text-caption px-3 pb-[13px] max-compact:hidden">ՈՒՍՈՒՄՆԱԿԱՆ ՏԱՐԱԾՔ</div>

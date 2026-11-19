@@ -16,7 +16,6 @@
         </div>
 
         <div class="text-center mt-[14px] min-[1100px]:mt-[-34px] max-compact:mt-[22px]">
-            <img src="{{ asset('images/ucom-logo.svg') }}" alt="Ucom" width="433" height="211" class="w-[77px] h-auto mx-auto mb-[20px] max-compact:w-[60px]">
             <h2 id="certificate-title" class="font-armenian font-bold text-[34px] tracking-[.18em] leading-[1.5] max-compact:text-[20px] max-compact:tracking-[.08em]">ՎԿԱՅԱԿԱՆ</h2>
             <div aria-hidden="true" class="h-px max-w-[430px] mx-auto mt-[17px] mb-[18px] bg-[linear-gradient(90deg,transparent,#b99dcc,transparent)]"></div>
             <p class="text-caption font-semibold text-[15px] max-compact:text-[12px]">Հաստատում է, որ</p>
